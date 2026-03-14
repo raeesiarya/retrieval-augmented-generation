@@ -61,12 +61,8 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
 
             parsed = urlparse(full_url)
 
-            # stay inside EECS domain
-            if "eecs.berkeley.edu" not in parsed.netloc:
-                continue
-
-            # skip wiki editing pages
-            if "wiki.eecs.berkeley.edu" in parsed.netloc:
+            # only crawl the main EECS site
+            if parsed.netloc not in {"eecs.berkeley.edu", "www.eecs.berkeley.edu"}:
                 continue
 
             # skip mail links
