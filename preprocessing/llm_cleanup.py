@@ -12,45 +12,47 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 PROMPT = """
-You are cleaning scraped webpage text for a Retrieval-Augmented Generation (RAG) system.
+You are building a knowledge base for the website https://eecs.berkeley.edu.
 
-Your goal is to extract ONLY meaningful informational content.
+Your task is to read scraped webpage text and extract a short, clean summary of the page.
 
-Remove completely:
+The goal is to create a concise information entry that describes the main content of the page.
+
+Ignore completely:
 - navigation menus
-- breadcrumbs
-- repeated text
-- repeated links
-- newsletter lists
-- event listings
+- repeated lists
+- newsletter archives
+- event feeds
 - page headers and footers
-- link collections like "< Page > < Page >"
+- link collections
 - duplicated phrases
 - UI elements
-- contact information blocks
-- newsletter archives
+- breadcrumbs
+- lists of links without explanation
 
-Rules:
-- Remove duplicate sentences.
-- Remove repeated phrases.
-- If a sentence appears many times, keep only one.
-- Remove fragments that do not form meaningful sentences.
+Focus ONLY on meaningful informational content such as:
+- descriptions of programs
+- research areas
+- faculty information
+- department initiatives
+- events with explanations
+- announcements
+- historical or factual information
 
-Keep ONLY:
-- factual information
-- descriptions
-- biographies
-- research descriptions
-- names of people
-- dates
-- organizations
-- locations
+Instructions:
+- Write a short summary of the page (3–6 sentences).
+- Capture the most important information from the page.
+- Remove duplicate content.
+- Do not include lists of repeated items.
+- Do not include raw link text.
+- Do not include navigation text.
+- Rewrite the information in clear sentences.
 
-Rewrite the remaining content into clean paragraphs.
+If the page contains no meaningful informational content, return an empty string.
 
-If the page contains no meaningful information, return an empty string.
+The summary should read like a short encyclopedia-style description of the page.
 
-TEXT:
+WEBPAGE TEXT:
 """
 
 
