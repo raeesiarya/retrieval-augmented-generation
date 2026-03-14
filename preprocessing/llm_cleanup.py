@@ -180,6 +180,8 @@ class LlamaPageSummarizer:
     repetition_penalty: float = DEFAULT_REPETITION_PENALTY
     cache_dir: Path = DEFAULT_CACHE_DIR
     hf_token: str | None = None
+    tokenizer: Any = None
+    model: Any = None
 
     def __post_init__(self) -> None:
         self.cache_dir = Path(self.cache_dir)
