@@ -8,9 +8,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, TypedDict
-from huggingface_hub import HfFolder
+from huggingface_hub import get_token
 
-HF_TOKEN = HfFolder.get_token()
+HF_TOKEN = get_token()
 
 try:
     from preprocessing.crawl_eecs import get_urls, process_urls
