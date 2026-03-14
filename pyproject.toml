@@ -5,11 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "bs4>=0.0.2",
-    "requests>=2.32.5",
-    "torch>=2.10.0",
-    "torchaudio>=2.10.0",
-    "torchvision>=0.25.0",
-    "tqdm>=4.67.3",
+    "beautifulsoup4",
+    "requests",
+    "torch>=2.0",
     "transformers<4.40",
+    "numpy<2",
+    "tqdm",
 ]
