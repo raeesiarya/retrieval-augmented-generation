@@ -119,31 +119,31 @@ def remove_repeated_lines(text: str) -> str:
 def open_page(page_url: str) -> str:
     """Open the URL and return clean text from the page."""
 
-    HEADERS = {"User-Agent": "Mozilla/5.0"}
-
     try:
-        response = SESSION.get(page_url, headers=HEADERS, timeout=5)
+        response = SESSION.get(page_url, timeout=5)
     except Exception:
         return ""
 
     if response.status_code != 200:
         return ""
 
+    content_type = response.headers.get("content-type", "")
+    if "text/html" not in content_type:
+        return ""
+
     soup = BeautifulSoup(response.text, "html.parser")
 
-    # remove junk elements
     for tag in soup(
         ["script", "style", "nav", "footer", "header", "noscript", "aside", "form"]
     ):
         tag.decompose()
 
     # try to extract main content
-    main = soup.find("main")
+    content = soup.select_one(
+        "main article, main .content, main .page-content, article"
+    )
 
-    if main:
-        content = main
-    else:
-        # fallback if <main> doesn't exist
+    if not content:
         content = soup.body if soup.body else soup
 
     text = content.get_text(separator=" ")
@@ -180,12 +180,12 @@ def save_documents(documents: list, output_file_path: str) -> None:
 
     with open(output_file_path, "w", encoding="utf-8") as f:
         for doc in documents:
-            json.dump(doc, f)
+            json.dump(doc, f, ensure_ascii=False)
             f.write("\n")
 
 
 if __name__ == "__main__":
-    urls = get_urls(limit=100)
+    urls = get_urls(limit=50000)
     documents = process_urls(urls)
 
     print("Pages scraped:", len(documents))
