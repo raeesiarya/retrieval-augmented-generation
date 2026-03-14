@@ -30,3 +30,12 @@ uv.lock
 
 # Data files
 data/
+!data/
+data/*
+!data/reference.jsonl
+!data/qa_validation_seed.jsonl
+!data/qa_validation_metadata.jsonl
+!data/qa_validation_iaa_subset.jsonl
+!data/qa_validation_iaa_metadata.jsonl
+!data/qa_validation_iaa_subset_blind.csv
+!data/qa_validation_README.md
