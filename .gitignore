@@ -24,3 +24,6 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+
+# uv
+uv.lock
