@@ -8,11 +8,11 @@ dependencies = [
     "beautifulsoup4",
     "requests",
     "torch>=2.0",
-    "transformers>=4.40,<5",
     "tokenizers>=0.19,<1",
     "numpy<2",
     "tqdm",
     "accelerate>=1.13.0",
     "sentencepiece>=0.2.1",
     "protobuf>=7.34.0",
+    "transformers>=4.45",
 ]
