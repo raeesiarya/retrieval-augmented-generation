@@ -3,6 +3,7 @@ from tqdm import tqdm
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
+import re
 
 
 def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) -> list:
@@ -88,6 +89,22 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
     return list(visited)
 
 
+def remove_repeated_lines(text: str) -> str:
+    lines = text.split(" ")
+
+    counts = {}
+    filtered = []
+
+    for line in lines:
+        counts[line] = counts.get(line, 0) + 1
+
+        # drop extremely repeated tokens
+        if counts[line] < 3:
+            filtered.append(line)
+
+    return " ".join(filtered)
+
+
 def open_page(page_url: str) -> str:
     """Open the URL and return clean text from the page."""
 
@@ -119,9 +136,8 @@ def open_page(page_url: str) -> str:
         content = soup.body if soup.body else soup
 
     text = content.get_text(separator=" ")
-
-    # normalize whitespace
     text = " ".join(text.split())
+    text = remove_repeated_lines(text)
 
     return text
 
