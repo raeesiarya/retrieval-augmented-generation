@@ -8,6 +8,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, TypedDict
+from huggingface_hub import HfFolder
+
+HF_TOKEN = HfFolder.get_token()
 
 try:
     from preprocessing.crawl_eecs import get_urls, process_urls
@@ -15,7 +18,7 @@ except ImportError:
     from crawl_eecs import get_urls, process_urls
 
 
-MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
+MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct"
 DEFAULT_MAX_INPUT_TOKENS = 4000
 DEFAULT_MAX_NEW_TOKENS = 120
 DEFAULT_TEMPERATURE = 0.1
@@ -184,7 +187,10 @@ class LlamaPageSummarizer:
         os.environ.setdefault("HF_HOME", str(self.cache_dir))
 
         self.hf_token = (
-            self.hf_token or os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN")
+            self.hf_token
+            or os.getenv("HF_TOKEN")
+            or os.getenv("HUGGINGFACE_HUB_TOKEN")
+            or HF_TOKEN
         )
 
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
@@ -379,7 +385,7 @@ def write_summaries(summaries: list[SummaryDocument], output_path: str | Path) -
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Summarize UC Berkeley EECS webpages with Meta-Llama-3-8B-Instruct.",
+        description="Summarize UC Berkeley EECS webpages with Meta-Llama-3.1-8B-Instruct.",
     )
     parser.add_argument(
         "--input",
