@@ -104,11 +104,21 @@ def open_page(page_url: str) -> str:
     soup = BeautifulSoup(response.text, "html.parser")
 
     # remove junk elements
-    for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+    for tag in soup(
+        ["script", "style", "nav", "footer", "header", "noscript", "aside", "form"]
+    ):
         tag.decompose()
 
-    # extract visible text
-    text = soup.get_text(separator=" ")
+    # try to extract main content
+    main = soup.find("main")
+
+    if main:
+        content = main
+    else:
+        # fallback if <main> doesn't exist
+        content = soup.body if soup.body else soup
+
+    text = content.get_text(separator=" ")
 
     # normalize whitespace
     text = " ".join(text.split())
