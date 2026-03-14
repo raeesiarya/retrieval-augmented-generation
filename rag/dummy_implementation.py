@@ -33,10 +33,12 @@ DEFAULT_CHUNK_OVERLAP = 30
 SYSTEM_PROMPT = (
     "You are answering factoid questions about UC Berkeley EECS using retrieved context.\n"
     "Rules:\n"
-    "- Return a short answer phrase only (max 10 words).\n"
+    "- Return a short answer phrase only (as short as possible).\n"
     "- Do not explain or add extra text.\n"
     '- If the answer is not supported by context, return exactly: "unknown".'
 )
+
+LLM_CHOICE = "meta-llama/llama-3.1-8b-instruct"
 
 
 @dataclass(frozen=True)
@@ -194,6 +196,7 @@ class EarlyMilestoneRAG:
                 system_prompt=SYSTEM_PROMPT,
                 max_tokens=20,
                 temperature=0.0,
+                model=LLM_CHOICE,
             )
             answer = raw.strip().splitlines()[0].strip()
             return answer if answer else "unknown", retrieved
