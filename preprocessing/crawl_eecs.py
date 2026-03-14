@@ -4,6 +4,10 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+}
+
 
 def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
     """
@@ -45,7 +49,7 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
         pbar.set_postfix(queue=len(to_visit), visited=len(visited))
 
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, headers=HEADERS, timeout=5)
         except Exception:
             continue
 
