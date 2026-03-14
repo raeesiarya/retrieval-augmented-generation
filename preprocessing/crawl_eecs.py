@@ -146,4 +146,4 @@ if __name__ == "__main__":
 
     for doc in documents[:3]:
         print("\nURL:", doc["url"])
-        print(doc["text"][:300])
+        print(doc["text"])
