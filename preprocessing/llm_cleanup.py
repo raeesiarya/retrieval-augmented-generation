@@ -12,23 +12,43 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 PROMPT = """
-Clean the following webpage text so it can be used in a question answering system.
+You are cleaning scraped webpage text for a Retrieval-Augmented Generation (RAG) system.
 
-Remove:
+Your goal is to extract ONLY meaningful informational content.
+
+Remove completely:
 - navigation menus
-- repeated UI elements
+- breadcrumbs
+- repeated text
+- repeated links
 - newsletter lists
 - event listings
-- footer text
+- page headers and footers
+- link collections like "< Page > < Page >"
+- duplicated phrases
+- UI elements
+- contact information blocks
+- newsletter archives
 
-Keep:
+Rules:
+- Remove duplicate sentences.
+- Remove repeated phrases.
+- If a sentence appears many times, keep only one.
+- Remove fragments that do not form meaningful sentences.
+
+Keep ONLY:
 - factual information
 - descriptions
-- names
+- biographies
+- research descriptions
+- names of people
 - dates
-- numbers
+- organizations
+- locations
 
-Rewrite the content as clear paragraphs.
+Rewrite the remaining content into clean paragraphs.
+
+If the page contains no meaningful information, return an empty string.
 
 TEXT:
 """
@@ -125,7 +145,7 @@ def clean_documents(documents: list) -> list:
 
 
 if __name__ == "__main__":
-    urls = get_urls(limit=10)
+    urls = get_urls(limit=3)
     documents = process_urls(urls)
 
     cleaned_docs = clean_documents(documents)
