@@ -34,9 +34,7 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
         for link in soup.find_all("a", href=True):
             href = link["href"]
 
-            # convert relative → absolute
             full_url = urljoin(base_url, href)
-
             parsed = urlparse(full_url)
 
             if "eecs.berkeley.edu" not in parsed.netloc:
@@ -45,7 +43,7 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
             if full_url.endswith((".pdf", ".jpg", ".png", ".zip")):
                 continue
 
-            if full_url not in visited:
+            if full_url not in visited and full_url not in to_visit:
                 to_visit.append(full_url)
 
     pbar.close()
