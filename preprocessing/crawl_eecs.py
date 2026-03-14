@@ -6,6 +6,10 @@ from urllib.parse import urljoin, urlparse
 import re
 
 
+SESSION = requests.Session()
+SESSION.headers.update({"User-Agent": "Mozilla/5.0"})
+
+
 def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) -> list:
     """
     Crawl the EECS website and return all internal URLs.
@@ -36,7 +40,7 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
     pbar = tqdm(desc="Crawling pages")
 
     while to_visit and len(visited) < limit:
-        url = to_visit.pop()
+        url = to_visit.popleft()
         queued.remove(url)
 
         if url in visited:
@@ -48,14 +52,19 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
         pbar.set_postfix(queue=len(to_visit), visited=len(visited))
 
         try:
-            response = requests.get(url, headers=HEADERS, timeout=5)
-        except Exception:
+            response = SESSION.get(url, headers=HEADERS, timeout=5)
+        except requests.RequestException:
             continue
 
         soup = BeautifulSoup(response.text, "html.parser")
 
         for link in soup.find_all("a", href=True):
             full_url = urljoin(url, link["href"])
+
+            parsed = urlparse(full_url)
+
+            if parsed.path == "":
+                full_url = parsed.scheme + "://" + parsed.netloc
 
             # normalize URL
             full_url = full_url.split("#")[0]
@@ -90,17 +99,18 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
 
 
 def remove_repeated_lines(text: str) -> str:
-    lines = text.split(" ")
+    sentences = re.split(r"(?<=[.!?]) +", text)
 
-    counts = {}
+    seen = set()
     filtered = []
 
-    for line in lines:
-        counts[line] = counts.get(line, 0) + 1
+    for s in sentences:
+        s = s.strip()
+        if not s or s in seen:
+            continue
 
-        # drop extremely repeated tokens
-        if counts[line] < 3:
-            filtered.append(line)
+        seen.add(s)
+        filtered.append(s)
 
     return " ".join(filtered)
 
@@ -111,7 +121,7 @@ def open_page(page_url: str) -> str:
     HEADERS = {"User-Agent": "Mozilla/5.0"}
 
     try:
-        response = requests.get(page_url, headers=HEADERS, timeout=5)
+        response = SESSION.get(page_url, headers=HEADERS, timeout=5)
     except Exception:
         return ""
 
@@ -165,7 +175,7 @@ def process_urls(urls: list) -> list:
 
 
 if __name__ == "__main__":
-    urls = get_urls(limit=10)
+    urls = get_urls(limit=3)
     documents = process_urls(urls)
 
     print("Pages scraped:", len(documents))
