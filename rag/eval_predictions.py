@@ -114,6 +114,10 @@ def load_prediction_lines(path: Path) -> list[str]:
     return [line.rstrip("\n") for line in path.read_text(encoding="utf-8").splitlines()]
 
 
+def load_questions_txt(path: Path) -> list[str]:
+    return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
 def split_answers(answer_field: str) -> list[str]:
     answers = [part.strip() for part in answer_field.split("|")]
     return [answer for answer in answers if answer]
@@ -161,6 +165,35 @@ def evaluate_reference_jsonl(
     return summary, details
 
 
+def evaluate_reference_jsonl_by_question(
+    references: list[dict[str, str]],
+    questions: list[str],
+    predictions: list[str],
+) -> tuple[dict[str, float], list[dict[str, object]]]:
+    if len(questions) != len(predictions):
+        raise ValueError(
+            "Question/prediction length mismatch: "
+            f"{len(questions)} questions vs {len(predictions)} predictions."
+        )
+
+    reference_index: dict[str, dict[str, str]] = {}
+    for row in references:
+        question = row["question"]
+        if question in reference_index:
+            raise ValueError(
+                "Duplicate question found in references, cannot safely align by question text."
+            )
+        reference_index[question] = row
+
+    aligned_references: list[dict[str, str]] = []
+    for question in questions:
+        if question not in reference_index:
+            raise ValueError(f"Question not found in references: {question}")
+        aligned_references.append(reference_index[question])
+
+    return evaluate_reference_jsonl(aligned_references, predictions)
+
+
 def write_details(details: list[dict[str, object]], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
@@ -179,7 +212,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("prediction_file", nargs="?", default=None)
     parser.add_argument("--references", type=Path, default=None)
     parser.add_argument("--predictions", type=Path, default=None)
+    parser.add_argument(
+        "--questions",
+        type=Path,
+        default=None,
+        help=(
+            "Optional questions txt file. When provided with a JSONL reference file, "
+            "predictions will be aligned to references by exact question text instead "
+            "of line order."
+        ),
+    )
     parser.add_argument("--details-out", type=Path, default=None)
+    parser.add_argument(
+        "--allow-prefix",
+        action="store_true",
+        help=(
+            "If predictions are shorter than references, evaluate only the first "
+            "len(predictions) reference rows. Use this only when predictions were "
+            "generated from that prefix of the reference file."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -218,7 +270,15 @@ def main() -> None:
 
     references = load_reference_jsonl(references_path)
     predictions = load_prediction_lines(predictions_path)
-    results, details = evaluate_reference_jsonl(references, predictions)
+    if args.questions is not None:
+        questions = load_questions_txt(args.questions)
+        results, details = evaluate_reference_jsonl_by_question(
+            references, questions, predictions
+        )
+    else:
+        if args.allow_prefix and len(predictions) < len(references):
+            references = references[: len(predictions)]
+        results, details = evaluate_reference_jsonl(references, predictions)
     if args.details_out is not None:
         write_details(details, args.details_out)
     print(json.dumps(results, indent=2))
