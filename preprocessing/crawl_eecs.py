@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import re
+import json
 
 
 SESSION = requests.Session()
@@ -174,8 +175,17 @@ def process_urls(urls: list) -> list:
     return documents
 
 
+def save_documents(documents: list, output_file_path: str) -> None:
+    """Save the documents to a JSONL file."""
+
+    with open(output_file_path, "w", encoding="utf-8") as f:
+        for doc in documents:
+            json.dump(doc, f)
+            f.write("\n")
+
+
 if __name__ == "__main__":
-    urls = get_urls(limit=3)
+    urls = get_urls(limit=100)
     documents = process_urls(urls)
 
     print("Pages scraped:", len(documents))
@@ -183,3 +193,5 @@ if __name__ == "__main__":
     for doc in documents:
         print("\nURL:", doc["url"])
         print(doc["text"])
+
+    save_documents(documents, "data/crawl_eecs_raw.jsonl")
