@@ -91,15 +91,54 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
 
 
 def open_page(page_url: str) -> str:
-    """Open the url and return the text of the page."""
-    return
+    """Open the URL and return clean text from the page."""
+
+    try:
+        response = requests.get(page_url, timeout=5)
+    except Exception:
+        return ""
+
+    if response.status_code != 200:
+        return ""
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # remove junk elements
+    for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+        tag.decompose()
+
+    # extract visible text
+    text = soup.get_text(separator=" ")
+
+    # normalize whitespace
+    text = " ".join(text.split())
+
+    return text
 
 
 def process_urls(urls: list):
     """Go through the list of urls and get the text of each page."""
-    return
+
+    documents = []
+
+    pbar = tqdm(total=len(urls), desc="Processing pages")
+
+    for url in urls:
+        text = open_page(url)
+
+        pbar.update(1)
+
+        if not text:
+            continue
+
+        documents.append({"url": url, "text": text})
+
+    pbar.close()
+
+    return documents
 
 
 if __name__ == "__main__":
     urls = get_urls()
-    print(urls)
+    documents = process_urls(urls)
+    print(documents)
