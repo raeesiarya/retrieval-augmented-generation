@@ -38,6 +38,8 @@ SYSTEM_PROMPT = (
     '- If the answer is not supported by context, return exactly: "unknown".'
 )
 
+LLM_CHOICE = "mistralai/mistral-7b-instruct"
+
 
 @dataclass(frozen=True)
 class Chunk:
@@ -194,6 +196,7 @@ class EarlyMilestoneRAG:
                 system_prompt=SYSTEM_PROMPT,
                 max_tokens=20,
                 temperature=0.0,
+                model=LLM_CHOICE,
             )
             answer = raw.strip().splitlines()[0].strip()
             return answer if answer else "unknown", retrieved
