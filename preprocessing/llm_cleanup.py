@@ -207,7 +207,7 @@ class LlamaPageSummarizer:
             self.model_name,
             cache_dir=str(self.cache_dir),
             token=self.hf_token,
-            torch_dtype=torch_dtype,
+            dtype=torch_dtype,
             device_map="auto",
             low_cpu_mem_usage=True,
         )
@@ -216,7 +216,7 @@ class LlamaPageSummarizer:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
         self.model.eval()
-        self.input_device = next(self.model.parameters()).device
+        self.input_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.terminators = [self.tokenizer.eos_token_id]
         eot_id = self.tokenizer.convert_tokens_to_ids("<|eot_id|>")
