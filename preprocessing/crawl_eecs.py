@@ -54,7 +54,7 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
         soup = BeautifulSoup(response.text, "html.parser")
 
         for link in soup.find_all("a", href=True):
-            full_url = urljoin(base_url, link["href"])
+            full_url = urljoin(url, link["href"])
 
             # normalize URL
             full_url = full_url.split("#")[0]
@@ -116,7 +116,7 @@ def open_page(page_url: str) -> str:
     return text
 
 
-def process_urls(urls: list):
+def process_urls(urls: list) -> list:
     """Go through the list of urls and get the text of each page."""
 
     documents = []
@@ -144,6 +144,6 @@ if __name__ == "__main__":
 
     print("Pages scraped:", len(documents))
 
-    for doc in documents[:3]:
+    for doc in documents:
         print("\nURL:", doc["url"])
         print(doc["text"])
