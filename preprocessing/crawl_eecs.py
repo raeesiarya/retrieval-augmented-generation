@@ -10,6 +10,22 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
     Crawl the EECS website and return all internal URLs.
     """
 
+    BAD_EXTENSIONS = (
+        ".pdf",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".mp4",
+        ".ps",
+        ".ps.gz",
+        ".doc",
+        ".zip",
+        ".bin",
+        ".xml",
+        ".atom",
+    )
+
     visited = set()
     queued = {base_url}
     to_visit = deque([base_url])
@@ -37,14 +53,32 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
 
         for link in soup.find_all("a", href=True):
             full_url = urljoin(base_url, link["href"])
+
+            # normalize URL
             full_url = full_url.split("#")[0]
+            full_url = full_url.split("?")[0]
+            full_url = full_url.rstrip("/")
 
             parsed = urlparse(full_url)
 
+            # stay inside EECS domain
             if "eecs.berkeley.edu" not in parsed.netloc:
                 continue
 
-            if full_url.endswith((".pdf", ".jpg", ".png", ".zip")):
+            # skip wiki editing pages
+            if "wiki.eecs.berkeley.edu" in parsed.netloc:
+                continue
+
+            # skip mail links
+            if full_url.startswith("mailto:"):
+                continue
+
+            # skip downloads / non-html
+            if full_url.lower().endswith(BAD_EXTENSIONS):
+                continue
+
+            # skip CGI endpoints
+            if "cgi-bin" in full_url or ".cgi" in full_url:
                 continue
 
             if full_url not in visited and full_url not in queued:
