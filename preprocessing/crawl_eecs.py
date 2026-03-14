@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
 
-def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
+def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) -> list:
     """
     Crawl the EECS website and return all internal URLs.
     """
@@ -34,7 +34,7 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
 
     pbar = tqdm(desc="Crawling pages")
 
-    while to_visit:
+    while to_visit and len(visited) < limit:
         url = to_visit.pop()
         queued.remove(url)
 
@@ -139,6 +139,6 @@ def process_urls(urls: list):
 
 
 if __name__ == "__main__":
-    urls = get_urls()
+    urls = get_urls(limit=10)
     documents = process_urls(urls)
     print(documents)
