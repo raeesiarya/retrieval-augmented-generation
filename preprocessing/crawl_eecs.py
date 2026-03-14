@@ -4,10 +4,6 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
-}
-
 
 def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
     """
@@ -29,6 +25,8 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
         ".xml",
         ".atom",
     )
+
+    HEADERS = {"User-Agent": "Mozilla/5.0"}
 
     visited = set()
     queued = {base_url}
@@ -93,8 +91,10 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu") -> list:
 def open_page(page_url: str) -> str:
     """Open the URL and return clean text from the page."""
 
+    HEADERS = {"User-Agent": "Mozilla/5.0"}
+
     try:
-        response = requests.get(page_url, timeout=5)
+        response = requests.get(page_url, headers=HEADERS, timeout=5)
     except Exception:
         return ""
 
