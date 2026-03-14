@@ -141,4 +141,9 @@ def process_urls(urls: list):
 if __name__ == "__main__":
     urls = get_urls(limit=10)
     documents = process_urls(urls)
-    print(documents)
+
+    print("Pages scraped:", len(documents))
+
+    for doc in documents[:3]:
+        print("\nURL:", doc["url"])
+        print(doc["text"][:300])
