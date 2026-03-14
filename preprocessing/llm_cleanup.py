@@ -2,26 +2,30 @@ from transformers import pipeline
 from tqdm import tqdm
 from crawl_eecs import get_urls, process_urls
 
-cleaner = pipeline("text-generation", model="google/flan-t5-base", max_new_tokens=512)
+cleaner = pipeline(
+    "text-generation", model="mistralai/Mistral-7B-Instruct", device_map="auto"
+)
 
 PROMPT = """
-Clean the following webpage text so it is useful for a question answering system.
+Clean the following webpage text so it can be used in a question answering system.
 
 Remove:
 - navigation menus
 - repeated UI elements
 - newsletter lists
-- "View Open Faculty Positions"
 - event listings
+- footer text
 
 Keep:
 - factual information
 - descriptions
 - names
-- numbers
 - dates
+- numbers
 
-Text:
+Rewrite the content as clear paragraphs.
+
+TEXT:
 """
 
 
