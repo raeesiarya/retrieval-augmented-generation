@@ -27,3 +27,6 @@ coverage.xml
 
 # uv
 uv.lock
+
+# Data files
+data/
