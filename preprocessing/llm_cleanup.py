@@ -52,6 +52,28 @@ def chunk_text(text: str, chunk_size: int = 1500, overlap: int = 200):
     return chunks
 
 
+def basic_cleanup(text: str) -> str:
+    lines = text.splitlines()
+
+    cleaned = []
+    seen = set()
+
+    for line in lines:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        # remove duplicates
+        if line in seen:
+            continue
+
+        seen.add(line)
+        cleaned.append(line)
+
+    return " ".join(cleaned)
+
+
 def clean_text(text: str) -> str:
     prompt = PROMPT + text
 
@@ -83,7 +105,8 @@ def clean_documents(documents: list) -> list:
     pbar = tqdm(total=total_chunks, desc="LLM cleaning")
 
     for doc in documents:
-        chunks = chunk_text(doc["text"])
+        cleaned_input = basic_cleanup(doc["text"])
+        chunks = chunk_text(cleaned_input)
         cleaned_chunks = []
 
         for chunk in chunks:
