@@ -1,9 +1,13 @@
 from transformers import pipeline
 from tqdm import tqdm
 from crawl_eecs import get_urls, process_urls
+import torch
 
 cleaner = pipeline(
-    "text-generation", model="mistralai/Mistral-7B-Instruct", device_map="auto"
+    "text-generation",
+    model="mistralai/Mistral-7B-Instruct-v0.2",
+    device_map="auto",
+    torch_dtype=torch.float16,
 )
 
 PROMPT = """
