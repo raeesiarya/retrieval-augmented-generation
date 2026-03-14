@@ -185,7 +185,7 @@ def save_documents(documents: list, output_file_path: str) -> None:
 
 
 if __name__ == "__main__":
-    urls = get_urls(limit=200)
+    urls = get_urls(limit=1000)
     documents = process_urls(urls)
 
     print("Pages scraped:", len(documents))
