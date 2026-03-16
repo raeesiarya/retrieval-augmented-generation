@@ -37,3 +37,6 @@ data/*
 !data/qa_validation_iaa_subset.jsonl
 !data/qa_validation_iaa_subset_blind.csv
 !data/qa_validation_README.md
+!data/qa_holdout_mini.jsonl
+!data/qa_holdout_mini2.jsonl
+!data/qa_holdout_mini3.jsonl
