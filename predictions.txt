@@ -16,7 +16,7 @@ No
 Fall (August)
 December
 Computer Science (CS)
-CS
+CS Major
 5
 Over 250
 over 70
@@ -33,7 +33,7 @@ June 13
 54
 May
 Soda Hall
-Apple scholarships for Berkeley EECS students
+Apple scholarships
 PhD. only
 The Symantec Graduate Fellowship Program
 eecs-chair@eecs.berkeley.edu
@@ -62,7 +62,7 @@ payroll@eecs.berkeley.edu
 unknown
 395 Soda Hall
 unknown
-EECS Gier Project, 231 Cory Hall, #1770
+EECS Gier Project 231 Cory Hall, #1770
 unknown
 The Charles K. (Ned) Birdsall Graduate Research Fund
 CS KickStart Program
@@ -75,11 +75,11 @@ Women in Computer Science and Engineering (WICSE)
 female-identifying first-year students
 electric guitar
 The Faculty Club
-Dana King
+Sculptor Dana King
 Blum Hall
 Ruzena Bajcsy
 Celebration of Andy Neureuther
-2024
+2023-24
 canceled
 BEARS
 My EECS Info
@@ -90,11 +90,11 @@ eecs-phd-funding@berkeley.edu
 Antoine Davis
 Michelle Fong
 377 Soda
-Eric Brewer
+Manuel Blum
 cs-advising@berkeley.edu
 unknown
 Gina Garcia
 eecs-advising@berkeley.edu
 Wednesdays
-EECS Special Programs Manager
+unknown
 315 Soda
