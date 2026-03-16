@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 import re
 import sys
 from collections import Counter
@@ -353,11 +352,6 @@ def main() -> None:
     rag = EarlyMilestoneRAG(index=index, top_k=args.top_k)
 
     use_llm = not args.no_llm
-    if use_llm and not os.environ.get("OPENROUTER_API_KEY", "").strip():
-        print(
-            "Warning: OPENROUTER_API_KEY is not set; using extractive fallback.",
-            file=sys.stderr,
-        )
 
     if questions_arg or predictions_arg:
         if not questions_arg or not predictions_arg:
