@@ -40,3 +40,6 @@ data/*
 !data/qa_holdout_mini.jsonl
 !data/qa_holdout_mini2.jsonl
 !data/qa_holdout_mini3.jsonl
+
+# Research
+research/
