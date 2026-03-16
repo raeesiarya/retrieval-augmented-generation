@@ -29,6 +29,7 @@ BAD_EXTENSIONS = (
 ALLOWED_DOMAINS = {
     "eecs.berkeley.edu",
     "www.eecs.berkeley.edu",
+    "www2.eecs.berkeley.edu",
 }
 
 
