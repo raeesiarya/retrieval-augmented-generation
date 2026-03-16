@@ -1,41 +1,41 @@
-gradadmissions@eecs.berkeley.edu
+gradadm@berkeley.edu
 webteam @eecs.berkeley.edu
-Soda Hall 387.
+Soda Hall.
 12 pm-1 pm
-+1 (510) 642-1042
+(510) 642-1042
 Cory Hall.
 Bennett Agnew
-news@eecs.berkeley.edu
+bears-admin@eecs.berkeley.edu
 Karla Thao
 inst@eecs.berkeley.edu
-CS70.
-CS61C.
+CS 70
+CS 61C
 3.0 (B)
-No, all of our graduate programs are on campus.
+No.
 8-12 units.
 Fall (August)
-December.
+December
 Computer Science (CS)
-CS Major
+CS Major.
 unknown
 Over 250.
-over 70
+Research Number of research areas : 20 Number of EECS-affiliated
 741
 1952
-New Orleans
+New Orleans.
 Jelani Nelson.
-John Wawrzynek.
-gifts@eecs.berkeley.edu.
+John Canny
+gifts@eecs.berkeley.edu
 #1
 Hearst and LeRoy Avenues.
 71
 June 13.
 54
-May
+May.
 Soda Hall, outside the HP auditorium on the third floor.
 Apple scholarships.
-PhD only
-The Symantec Graduate Fellowship Program.
+PhD. only
+Symantec Graduate Fellowship Program
 eecs-chair@eecs.berkeley.edu
 Thomas Silva
 Alex Sandoval
@@ -46,55 +46,55 @@ keys@eecs.berkeley.edu
 Logan Baldini.
 Chris Delligatti
 copiers-printers@eecs.berkeley.edu
-Gabe Chang
+Gabe Chang.
 accounting@eecs.berkeley.edu
-Rebecca Davis.
+Rebecca Davis
 Judy Smithson
 Charlene Duncan
-Patrick Hernan.
+Patrick Hernan
 Center for Student Affairs
 ugradadmissions@eecs.berkeley.edu
 Two.
 Master of Engineering (M.Eng.)
-Three.
+3
 Graduate Degrees Office (degrees@berkeley.edu)
 payroll@eecs.berkeley.edu
-Hamilton Chang
-313 Soda Hall
-eecs-visitor-coordinator@eecs.berkeley.edu
-University of California, Berkeley EECS External Relations Attn: EECS Gier Project 231 Cory
+unknown
+395 Soda Hall, 642-0544.
+VSPA
+EECS External Relations Attn: EECS Gier Project
 unknown
 The Charles K. (Ned) Birdsall Graduate Research Fund
 CS KickStart Program.
-1831 Solano Ave.
+P.O. Box 8586
 memorial@eecs.berkeley.edu
 $2 million
-Armando Fox.
-Narges Norouzi, Lisa Yan, Boubacar Kanté.
+Armando Fox
+unknown
 Women in Computer Science and Engineering (WICSE)
-incoming freshman women at UC Berkeley.
+female-identifying first-year students
 electric guitar
-The Faculty Club.
-Dana King.
+Faculty Club.
+Dana King
 Blum Hall courtyard.
 Ruzena Bajcsy.
-Celebration of Andy Neureuther.
+2025-26 Special Events Professor Andy Neureuther (center) and former students
 2023-24
-Cancelled due to the COVID-19 pandemic.
-2022-23
-My EECS Info
-GlobalProtect
+canceled
+BEARS
+My EECS Info.
+Campus VPN.
 Center for Student Affairs
-Facilities, Safety & Space
+Graduate Students Information
 eecs-phd-funding@berkeley.edu
 Antoine Davis.
 Michelle Fong
 377 Soda
-Harry Huskey
-grads-cs@berkeley.edu
-grads-meng@berkeley.edu
+unknown
+unknown
+unknown
 Gina Garcia
 eecs-advising@berkeley.edu
-Wednesdays
-Krystle Simon.
-315 Soda.
+Wednesdays.
+EECS Special Programs Manager
+315 Soda

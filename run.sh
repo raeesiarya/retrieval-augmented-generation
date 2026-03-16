@@ -16,14 +16,15 @@ fi
 
 if [ -n "${RAG_CORPUS_PATH:-}" ]; then
   if [ "${RAG_NO_LLM:-0}" = "1" ]; then
-    python3 rag/dummy_implementation.py --no-llm --corpus "$RAG_CORPUS_PATH" "$QUESTIONS_PATH" "$PREDICTIONS_PATH"
+    python3 rag/model.py --no-llm --corpus "$RAG_CORPUS_PATH" "$QUESTIONS_PATH" "$PREDICTIONS_PATH"
   else
-    python3 rag/dummy_implementation.py --corpus "$RAG_CORPUS_PATH" "$QUESTIONS_PATH" "$PREDICTIONS_PATH"
+    python3 rag/model.py --corpus "$RAG_CORPUS_PATH" "$QUESTIONS_PATH" "$PREDICTIONS_PATH"
   fi
+  
 else
   if [ "${RAG_NO_LLM:-0}" = "1" ]; then
-    python3 rag/dummy_implementation.py --no-llm "$QUESTIONS_PATH" "$PREDICTIONS_PATH"
+    python3 rag/model.py --no-llm "$QUESTIONS_PATH" "$PREDICTIONS_PATH"
   else
-    python3 rag/dummy_implementation.py "$QUESTIONS_PATH" "$PREDICTIONS_PATH"
+    python3 rag/model.py "$QUESTIONS_PATH" "$PREDICTIONS_PATH"
   fi
 fi

@@ -11,24 +11,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-try:
-    from llm import call_llm
-except ImportError:
-    from rag.llm import call_llm
+# from rag.llm import call_llm
+from llm import call_llm
 
-
-TOKEN_RE = re.compile(r"[a-z0-9]+")
 DEFAULT_CORPUS_CANDIDATES = (
-    "data/crawl_eecs_summaries.jsonl",
-    "data/crawl_eecs_summary.jsonl",
-    "data/crawl_eecs_llm_cleanup.jsonl",
-    "data/crawl_eecs_cleaned.jsonl",
+    #"data/crawl_eecs_summaries.jsonl",
+    #"data/crawl_eecs_summary.jsonl",
+    #"data/crawl_eecs_llm_cleanup.jsonl",
+    #"data/crawl_eecs_cleaned.jsonl",
     "data/crawl_eecs_raw.jsonl",
-    "data/corpus.jsonl",
+    #"data/corpus.jsonl",
 )
-DEFAULT_TOP_K = 4
-DEFAULT_CHUNK_SIZE = 140
-DEFAULT_CHUNK_OVERLAP = 30
 
 SYSTEM_PROMPT = (
     "You are answering factoid questions about UC Berkeley EECS using retrieved context.\n"
@@ -40,17 +33,20 @@ SYSTEM_PROMPT = (
 
 LLM_CHOICE = "meta-llama/llama-3.1-8b-instruct"
 
-
 @dataclass(frozen=True)
 class Chunk:
     url: str
     text: str
 
-
+# modify our tokenizer, currently only considering alphanumerics
+TOKEN_RE = re.compile(r"[a-z0-9]+")
 def tokenize(text: str) -> list[str]:
     return TOKEN_RE.findall(text.lower())
 
-
+# chunking
+DEFAULT_TOP_K = 4
+DEFAULT_CHUNK_SIZE = 140
+DEFAULT_CHUNK_OVERLAP = 30
 def chunk_text(text: str, chunk_size: int, overlap: int) -> Iterable[str]:
     words = text.split()
     if not words:
@@ -61,26 +57,8 @@ def chunk_text(text: str, chunk_size: int, overlap: int) -> Iterable[str]:
         if chunk:
             yield " ".join(chunk)
 
-
-def resolve_corpus_path(user_path: str | None) -> Path:
-    if user_path:
-        path = Path(user_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Corpus file not found: {path}")
-        return path
-
-    for candidate in DEFAULT_CORPUS_CANDIDATES:
-        path = Path(candidate)
-        if path.exists():
-            return path
-
-    raise FileNotFoundError(
-        "No corpus found. Tried: " + ", ".join(DEFAULT_CORPUS_CANDIDATES)
-    )
-
-
+# handles raw text crawl
 def extract_document_text(row: dict) -> str:
-    # Support both raw crawl rows and llm_cleanup summary rows.
     for key in ("summary", "text", "clean_text", "content", "page_text"):
         value = row.get(key)
         if value is None:
@@ -90,7 +68,7 @@ def extract_document_text(row: dict) -> str:
             return text
     return ""
 
-
+# chunking
 def load_chunks(
     corpus_path: Path, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP
 ) -> list[Chunk]:
@@ -117,7 +95,7 @@ def load_chunks(
         raise ValueError(f"No valid chunks loaded from {corpus_path}")
     return chunks
 
-
+# indexing
 class BM25Index:
     def __init__(self, chunks: list[Chunk], k1: float = 1.5, b: float = 0.75):
         self.chunks = chunks
@@ -163,7 +141,7 @@ class BM25Index:
         scores.sort(reverse=True)
         return [self.chunks[i] for _, i in scores[:top_k]]
 
-
+# orignal ragmodel
 class EarlyMilestoneRAG:
     def __init__(self, index: BM25Index, top_k: int = DEFAULT_TOP_K):
         self.index = index
@@ -176,15 +154,15 @@ class EarlyMilestoneRAG:
             context_blocks.append(f"[{i}] URL: {chunk.url}\n{chunk.text}")
         context = "\n\n".join(context_blocks)
         return (
-            f"Context:\n{context}\n\n"
-            f"Question: {question}\n\n"
-            "Answer with just the short answer phrase."
+            f"context:\n{context}\n\n"
+            f"question: {question}\n\n"
+            "Answer with just the short answer."
         )
 
     def answer(self, question: str, use_llm: bool = True) -> tuple[str, list[Chunk]]:
         retrieved = self.index.retrieve(question, top_k=self.top_k)
         if not retrieved:
-            return "unknown", []
+            return "UNKNOWN", []
 
         if not use_llm:
             return self.extractive_fallback(question, retrieved), retrieved
@@ -238,7 +216,7 @@ class EarlyMilestoneRAG:
         }
         focus_terms = {t for t in question_terms if t not in stop_words}
 
-        best_phrase = "unknown"
+        best_phrase = "UNKNOWN"
         best_score = -1.0
 
         for chunk in retrieved:
@@ -257,7 +235,7 @@ class EarlyMilestoneRAG:
                 if overlap == 0:
                     continue
 
-                # Favor compact, answer-like spans.
+                # favor compact, answer-like spans.
                 length_penalty = min(len(span_tokens), 14) * 0.08
                 score = overlap - length_penalty
                 if score > best_score:
@@ -265,7 +243,7 @@ class EarlyMilestoneRAG:
                     best_phrase = " ".join(words[:10]).strip(" ,;:.")
                     best_score = score
 
-        return best_phrase if best_phrase else "unknown"
+        return best_phrase if best_phrase else "UNKNOWN"
 
 
 def run_batch(
@@ -276,7 +254,7 @@ def run_batch(
     predictions: list[str] = []
     for q in questions:
         if not q:
-            predictions.append("unknown")
+            predictions.append("UNKNOWN")
             continue
         answer, _ = rag.answer(q, use_llm=use_llm)
         predictions.append(answer)
@@ -325,29 +303,15 @@ def load_questions(questions_path: Path) -> list[str]:
                 questions.append(item.strip())
             elif isinstance(item, dict):
                 question = str(item.get("question", "")).strip()
-                questions.append(question if question else "unknown")
+                questions.append(question if question else "UNKNOWN")
             else:
-                questions.append("unknown")
+                questions.append("UNKNOWN")
         return questions
 
     return [
         line.strip()
         for line in questions_path.read_text(encoding="utf-8").splitlines()
     ]
-
-
-def run_interactive(rag: EarlyMilestoneRAG, use_llm: bool) -> None:
-    print("RAG baseline ready. Type 'exit' to quit.")
-    while True:
-        question = input("\nQuestion: ").strip()
-        if question.lower() in {"exit", "quit"}:
-            break
-        answer, retrieved = rag.answer(question, use_llm=use_llm)
-        print(f"Answer: {answer}")
-        print("Retrieved URLs:")
-        for chunk in retrieved:
-            print(f"- {chunk.url}")
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Early milestone RAG baseline")
@@ -377,7 +341,9 @@ def main() -> None:
     questions_arg = args.questions or args.questions_pos
     predictions_arg = args.predictions or args.predictions_pos
 
-    corpus_path = resolve_corpus_path(args.corpus)
+    # corpus_path = resolve_corpus_path(args.corpus)
+    corpus_path = Path("data/crawl_eecs_raw.jsonl") # hardcoded
+
     chunks = load_chunks(
         corpus_path,
         chunk_size=args.chunk_size,
@@ -404,7 +370,8 @@ def main() -> None:
         )
         return
 
-    run_interactive(rag=rag, use_llm=use_llm)
+    print("Failed to run")
+    return
 
 
 if __name__ == "__main__":
