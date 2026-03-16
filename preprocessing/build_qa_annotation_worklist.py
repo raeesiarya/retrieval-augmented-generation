@@ -47,6 +47,15 @@ def parse_args() -> argparse.Namespace:
         default=45,
         help="Maximum number of candidate pages to include.",
     )
+    parser.add_argument(
+        "--exclude-questions",
+        type=Path,
+        default=None,
+        help=(
+            "Optional QA JSONL file whose URLs should be excluded from the worklist. "
+            "Useful for building a true holdout set from unseen pages."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -59,6 +68,23 @@ def load_documents(path: Path) -> list[dict[str, str]]:
                 continue
             documents.append(json.loads(line))
     return documents
+
+
+def load_excluded_urls(path: Path | None) -> set[str]:
+    if path is None:
+        return set()
+
+    excluded: set[str] = set()
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            url = str(row.get("url", "")).strip()
+            if url:
+                excluded.add(url)
+    return excluded
 
 
 def infer_page_type(url: str) -> str:
@@ -197,6 +223,15 @@ def select_documents(documents: list[dict[str, str]], limit: int) -> list[dict[s
     return selected
 
 
+def filter_documents(
+    documents: list[dict[str, str]],
+    excluded_urls: set[str],
+) -> list[dict[str, str]]:
+    if not excluded_urls:
+        return documents
+    return [document for document in documents if document.get("url") not in excluded_urls]
+
+
 def write_worklist(rows: list[dict[str, str]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
@@ -236,6 +271,8 @@ def write_worklist(rows: list[dict[str, str]], output_path: Path) -> None:
 def main() -> None:
     args = parse_args()
     documents = load_documents(args.input)
+    excluded_urls = load_excluded_urls(args.exclude_questions)
+    documents = filter_documents(documents, excluded_urls)
     rows = select_documents(documents, limit=args.limit)
     write_worklist(rows, args.output)
 
