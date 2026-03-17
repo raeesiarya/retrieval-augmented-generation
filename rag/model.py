@@ -167,6 +167,43 @@ def url_to_text(url: str) -> str:
     return normalize_space(" ".join(parts))
 
 
+def url_host_to_text(url: str) -> str:
+    parsed = urlparse(url)
+    host = parsed.netloc.casefold().split(":", maxsplit=1)[0]
+    if not host:
+        return ""
+
+    host_parts = [part for part in re.split(r"[.-]+", host) if part]
+    features = list(host_parts)
+
+    if "www2" in host_parts:
+        features.extend(["legacy", "legacy_site"])
+
+    if "eecs" in host_parts and "berkeley" in host_parts:
+        features.extend(["eecs", "berkeley"])
+
+    return normalize_space(" ".join(features))
+
+
+def canonical_url_features(url: str) -> str:
+    parsed = urlparse(url)
+    path = parsed.path.casefold()
+    features: list[str] = []
+
+    if path.endswith(".pdf") or ".pdf" in path:
+        features.extend(["pdf", "document"])
+    if "/pubs/" in path:
+        features.extend(["publications", "pubs"])
+    if "/techrpts/" in path or "techrpt" in path:
+        features.extend(["technical", "tech", "report", "reports"])
+    if "/homepages/" in path:
+        features.extend(["homepages", "homepage", "people"])
+    if "/faculty/" in path:
+        features.extend(["faculty", "people"])
+
+    return normalize_space(" ".join(features))
+
+
 def infer_title(row: dict, text: str) -> str:
     title = str(row.get("title", "")).strip()
     if title:
@@ -180,8 +217,12 @@ def infer_title(row: dict, text: str) -> str:
 
 
 def build_retrieval_text(url: str, title: str, text: str) -> str:
+    host_text = url_host_to_text(url)
     url_text = url_to_text(url)
-    return normalize_space(f"{title} {title} {url_text} {text}")
+    canonical_text = canonical_url_features(url)
+    return normalize_space(
+        f"{title} {title} {host_text} {url_text} {canonical_text} {text}"
+    )
 
 
 def question_types(question: str) -> set[str]:
@@ -631,7 +672,7 @@ class BM25Index:
         n_q = self.df.get(term, 0)
         return math.log(1 + (self.n_docs - n_q + 0.5) / (n_q + 0.5))
 
-    def retrieve(self, query: str, top_k: int = DEFAULT_TOP_K) -> list[Chunk]:
+    def _score_query(self, query: str) -> list[tuple[float, int]]:
         query_terms = tokenize(query)
         if not query_terms:
             return []
@@ -651,7 +692,59 @@ class BM25Index:
                 scores.append((score, i))
 
         scores.sort(reverse=True)
-        return [self.chunks[i] for _, i in scores[:top_k]]
+        return scores
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = DEFAULT_TOP_K,
+        candidate_k: int | None = None,
+        max_chunks_per_url: int = 2,
+    ) -> list[Chunk]:
+        if top_k <= 0:
+            return []
+
+        candidate_limit = candidate_k or max(24, top_k * 8)
+        scored_chunks = self._score_query(query)[:candidate_limit]
+        if not scored_chunks:
+            return []
+
+        by_url: dict[str, list[tuple[float, int]]] = {}
+        for score, chunk_idx in scored_chunks:
+            url = self.chunks[chunk_idx].url
+            by_url.setdefault(url, []).append((score, chunk_idx))
+
+        ranked_urls: list[tuple[float, str]] = []
+        for url, url_chunks in by_url.items():
+            url_chunks.sort(reverse=True)
+            best_score = url_chunks[0][0]
+            support_score = sum(score for score, _ in url_chunks[1:3])
+            url_score = best_score + 0.15 * support_score
+            ranked_urls.append((url_score, url))
+
+        ranked_urls.sort(reverse=True)
+
+        selected_indices: list[int] = []
+        selected_urls: list[str] = []
+
+        for _, url in ranked_urls:
+            selected_indices.append(by_url[url][0][1])
+            selected_urls.append(url)
+            if len(selected_indices) >= top_k:
+                return [self.chunks[idx] for idx in selected_indices]
+
+        extra_chunks: list[tuple[float, int]] = []
+        for url in selected_urls:
+            for score, chunk_idx in by_url[url][1:max_chunks_per_url]:
+                extra_chunks.append((score, chunk_idx))
+
+        extra_chunks.sort(reverse=True)
+        for _, chunk_idx in extra_chunks:
+            selected_indices.append(chunk_idx)
+            if len(selected_indices) >= top_k:
+                break
+
+        return [self.chunks[idx] for idx in selected_indices]
 
 # orignal ragmodel
 class EarlyMilestoneRAG:
