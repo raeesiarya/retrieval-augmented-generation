@@ -35,6 +35,9 @@ FILTER_URLS = [
     "https://chisel.eecs.berkeley.edu",
     "http://ptolemy.eecs.berkeley.edu/",
     "https://ptolemy.eecs.berkeley.edu/",
+    "https://wiki.eecs.berkeley.edu/",
+    "http://wiki.eecs.berkeley.edu/",
+    "hkn.eecs.berkeley.edu/about/cmembers/",
 ]
 
 
