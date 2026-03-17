@@ -55,6 +55,12 @@ BUILDING_RE = re.compile(
     r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s+"
     r"(?:Hall|Center|Building|Auditorium|Lab|Laboratory)\b"
 )
+LOCATION_PHRASE_RE = re.compile(
+    r"\b(?:\d{3,4}\s+[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)?"
+    r"|[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*\s+"
+    r"(?:Hall|Center|Building|Auditorium|Lab|Laboratory|Club|Office|Annex))"
+    r"(?:\s+(?:courtyard|annex|office))?\b"
+)
 TIME_RE = re.compile(
     r"\b(?:\d{1,2}(?::\d{2})?\s?(?:a\.?m\.?|p\.?m\.?)|noon|midnight)\b",
     re.IGNORECASE,
@@ -87,6 +93,12 @@ NUMBER_PHRASE_RE = re.compile(
     re.IGNORECASE,
 )
 NAME_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}\b")
+PERSON_TITLE_PREFIX_RE = re.compile(
+    r"^(?:Dr\.?|Prof\.?|Professor|Associate Professor|Assistant Professor|"
+    r"Emeritus Professor|Emerita Professor|Teaching Professor|Lecturer|"
+    r"Director|Chair|Dean)\s+",
+    re.IGNORECASE,
+)
 UNIVERSITY_RE = re.compile(
     r"\b(?:University of [A-Z][A-Za-z,&.-]+(?:\s+[A-Z][A-Za-z,&.-]+)*"
     r"|[A-Z][A-Za-z.&-]+(?:\s+[A-Z][A-Za-z.&-]+)* University)\b"
@@ -120,6 +132,34 @@ NAME_BLOCKLIST = {
     "undergraduate",
     "faculty",
     "affairs",
+    "director",
+    "chair",
+    "manager",
+    "coordinator",
+    "advisor",
+    "professor",
+    "lecturer",
+    "dean",
+    "science",
+    "engineering",
+    "advisory",
+    "board",
+    "committee",
+    "ceremony",
+    "dedication",
+    "memorial",
+    "center",
+    "club",
+    "hall",
+    "building",
+    "services",
+    "financial",
+    "accounting",
+    "political",
+    "project",
+    "award",
+    "awards",
+    "organizations",
 }
 STOP_WORDS = {
     "what",
@@ -291,6 +331,12 @@ def cleanup_answer_text(text: str) -> str:
     return cleaned.strip(" ,;:.")
 
 
+def normalize_candidate_text(text: str) -> str:
+    cleaned = cleanup_answer_text(text)
+    cleaned = re.sub(r"^(?:answer|candidate)\s*:\s*", "", cleaned, flags=re.IGNORECASE)
+    return cleaned.strip(" \"'")
+
+
 def extract_person_name_from_question(question: str) -> str | None:
     matches = list(NAME_RE.finditer(question))
     if not matches:
@@ -341,6 +387,132 @@ def is_plausible_person_name(text: str) -> bool:
     return not any(token.casefold() in NAME_BLOCKLIST for token in tokens)
 
 
+def trim_person_tokens(text: str) -> str:
+    tokens = cleanup_answer_text(text).split()
+    while tokens and PERSON_TITLE_PREFIX_RE.match(tokens[0]):
+        tokens = tokens[1:]
+    while tokens and tokens[-1].casefold() in NAME_BLOCKLIST:
+        tokens = tokens[:-1]
+    return " ".join(tokens)
+
+
+def select_person_name(question: str, text: str) -> str | None:
+    matches = []
+    question_lower = question.casefold()
+    question_no_article = re.sub(r"\bthe\s+", "", question_lower)
+
+    for match in NAME_RE.finditer(text):
+        candidate = trim_person_tokens(match.group(0))
+        if not is_plausible_person_name(candidate):
+            continue
+
+        score = 0.0
+        candidate_lower = candidate.casefold()
+        candidate_no_article = re.sub(r"^the\s+", "", candidate_lower)
+        if candidate_lower not in question_lower:
+            score += 2.0
+        if candidate_no_article and candidate_no_article not in question_no_article:
+            score += 1.0
+        score += min(len(candidate.split()), 4) * 0.2
+        score += match.start() * 0.0001
+        matches.append((score, candidate))
+
+    if matches:
+        matches.sort(reverse=True)
+        return matches[0][1]
+
+    cleaned = PERSON_TITLE_PREFIX_RE.sub("", cleanup_answer_text(text))
+    if cleaned != text:
+        return select_person_name(question, cleaned)
+
+    return None
+
+
+def select_location_phrase(text: str) -> str | None:
+    matches: list[str] = []
+    for regex in (LOCATION_PHRASE_RE, ROOM_RE, BUILDING_RE):
+        for match in regex.finditer(text):
+            candidate = cleanup_answer_text(match.group(0))
+            trailing_word = candidate.split()[-1].casefold()
+            if trailing_word in {"tel", "fax", "phone", "email", "web", "maps"}:
+                continue
+            matches.append(candidate)
+
+    if not matches:
+        return None
+
+    matches.sort(key=lambda item: (len(item.split()), len(item)), reverse=True)
+    return matches[0]
+
+
+def canonicalize_candidate_for_question(question: str, candidate: str) -> str | None:
+    cleaned = normalize_candidate_text(candidate)
+    if not cleaned:
+        return None
+
+    qtypes = question_types(question)
+
+    if "person" in qtypes:
+        return select_person_name(question, cleaned)
+    if "location" in qtypes:
+        return select_location_phrase(cleaned)
+    if "email" in qtypes:
+        match = EMAIL_RE.search(cleaned)
+        return cleanup_answer_text(match.group(0)) if match else None
+    if "phone" in qtypes:
+        match = PHONE_RE.search(cleaned)
+        return cleanup_answer_text(match.group(0)) if match else None
+    if "course" in qtypes:
+        match = COURSE_RE.search(cleaned)
+        return cleanup_answer_text(match.group(0)) if match else cleaned
+    if "time" in qtypes:
+        match = TIME_RE.search(cleaned)
+        return cleanup_answer_text(match.group(0)) if match else cleaned
+    if "date" in qtypes:
+        match = DATE_RANGE_RE.search(cleaned) or DATE_RE.search(cleaned)
+        return cleanup_answer_text(match.group(0)) if match else cleaned
+    if "year" in qtypes:
+        match = YEAR_RANGE_RE.search(cleaned) or YEAR_RE.search(cleaned)
+        return cleanup_answer_text(match.group(0)) if match else cleaned
+
+    return cleaned
+
+
+def is_hint_worthy(question: str, candidate: str) -> bool:
+    qtypes = question_types(question)
+    cleaned = canonicalize_candidate_for_question(question, candidate)
+    if not cleaned:
+        return False
+
+    cleaned_lower = cleaned.casefold()
+    question_lower = question.casefold()
+
+    if "person" in qtypes:
+        return False
+    if "location" in qtypes:
+        return False
+    if "email" in qtypes:
+        return EMAIL_RE.fullmatch(cleaned) is not None
+    if "phone" in qtypes:
+        return PHONE_RE.fullmatch(cleaned) is not None
+    if "date" in qtypes:
+        return DATE_RANGE_RE.fullmatch(cleaned) is not None or DATE_RE.fullmatch(cleaned) is not None
+    if "year" in qtypes:
+        return YEAR_RANGE_RE.fullmatch(cleaned) is not None or YEAR_RE.fullmatch(cleaned) is not None
+    if "time" in qtypes:
+        return TIME_RE.fullmatch(cleaned) is not None
+    if "course" in qtypes:
+        return COURSE_RE.fullmatch(cleaned) is not None
+    if "degree" in qtypes:
+        return DEGREE_RE.fullmatch(cleaned) is not None
+    if "token" in qtypes:
+        return TOKEN_NAME_RE.fullmatch(cleaned) is not None
+    if "team" in qtypes:
+        return TEAM_RE.fullmatch(cleaned) is not None
+
+    return len(cleaned.split()) <= 5
+
+
 def score_candidate(
     text: str,
     focus_terms: set[str],
@@ -367,7 +539,7 @@ def add_candidate(
     bonus: float,
     context_text: str | None = None,
 ) -> None:
-    candidate = cleanup_answer_text(text)
+    candidate = normalize_candidate_text(text)
     if not candidate:
         return
 
@@ -518,13 +690,96 @@ def extract_relation_candidates(question: str, span: str) -> list[tuple[str, flo
     return candidates
 
 
+def collect_answer_candidates(
+    question: str,
+    retrieved: list[Chunk],
+) -> list[tuple[float, str]]:
+    focus_terms = get_focus_terms(question)
+    qtypes = question_types(question)
+    candidates: dict[str, tuple[float, str]] = {}
+
+    for source_rank, chunk in enumerate(retrieved):
+        if not chunk.text:
+            continue
+
+        spans = split_into_spans(chunk.text)
+        for span in spans:
+            if not span:
+                continue
+
+            for candidate, bonus, candidate_context in extract_type_candidates(qtypes, span):
+                add_candidate(
+                    candidates,
+                    candidate,
+                    focus_terms,
+                    source_rank,
+                    bonus,
+                    context_text=candidate_context,
+                )
+
+            for candidate, bonus, candidate_context in extract_relation_candidates(question, span):
+                add_candidate(
+                    candidates,
+                    candidate,
+                    focus_terms,
+                    source_rank,
+                    bonus,
+                    context_text=candidate_context,
+                )
+
+            span_terms = set(tokenize(span))
+            overlap = len(span_terms & focus_terms)
+            if overlap == 0:
+                continue
+
+            short_span = " ".join(span.split()[:10])
+            add_candidate(
+                candidates,
+                short_span,
+                focus_terms,
+                source_rank,
+                2.2,
+                context_text=span,
+            )
+
+            if len(span.split()) <= 12:
+                add_candidate(
+                    candidates,
+                    span,
+                    focus_terms,
+                    source_rank,
+                    2.6,
+                    context_text=span,
+                )
+
+    normalized_candidates: dict[str, tuple[float, str]] = {}
+    for score, candidate in candidates.values():
+        normalized = canonicalize_candidate_for_question(question, candidate)
+        if not normalized:
+            continue
+        key = normalized.casefold()
+        previous = normalized_candidates.get(key)
+        if previous is None or score > previous[0]:
+            normalized_candidates[key] = (score, normalized)
+
+    return sorted(
+        ((score, candidate) for score, candidate in normalized_candidates.values()),
+        reverse=True,
+    )
+
+
 def postprocess_answer(question: str, answer: str) -> str:
-    cleaned = cleanup_answer_text(answer)
+    cleaned = normalize_candidate_text(answer)
     if not cleaned:
         return "unknown"
 
+    canonical = canonicalize_candidate_for_question(question, cleaned)
+    if canonical:
+        cleaned = canonical
+
     qtypes = question_types(question)
     lowered_question = question.casefold()
+
     for regex in (
         EMAIL_RE if "email" in qtypes else None,
         PHONE_RE if "phone" in qtypes else None,
@@ -534,6 +789,7 @@ def postprocess_answer(question: str, answer: str) -> str:
         TOKEN_NAME_RE if "token" in qtypes else None,
         TEAM_RE if "team" in qtypes else None,
         DEGREE_RE if "degree" in qtypes else None,
+        LOCATION_PHRASE_RE if "location" in qtypes else None,
         ROOM_RE if "location" in qtypes else None,
         BUILDING_RE if "location" in qtypes else None,
         TIME_RE if "time" in qtypes else None,
@@ -549,6 +805,11 @@ def postprocess_answer(question: str, answer: str) -> str:
         match = regex.search(cleaned)
         if match:
             return cleanup_answer_text(match.group(0))
+
+    if "location" in qtypes:
+        location = select_location_phrase(cleaned)
+        if location:
+            return location
 
     if "yesno" in qtypes:
         yes_no = infer_yes_no(cleaned)
@@ -840,12 +1101,26 @@ class EarlyMilestoneRAG:
         self._llm_failure_warned = False
 
     def build_query(self, question: str, retrieved: list[Chunk]) -> str:
+        candidate_hints = [
+            (score, candidate)
+            for score, candidate in collect_answer_candidates(question, retrieved)
+            if is_hint_worthy(question, candidate)
+        ][:4]
         context_blocks = []
         for i, chunk in enumerate(retrieved, start=1):
             context_blocks.append(f"[{i}] URL: {chunk.url}\n{chunk.text}")
         context = "\n\n".join(context_blocks)
+        hints_text = ""
+        if candidate_hints:
+            hint_lines = "\n".join(f"- {candidate}" for _, candidate in candidate_hints)
+            hints_text = (
+                "possible short answer candidates from the retrieved text "
+                "(use only if supported):\n"
+                f"{hint_lines}\n\n"
+            )
         return (
             f"context:\n{context}\n\n"
+            f"{hints_text}"
             f"question: {question}\n\n"
             "Answer with just the short answer."
         )
@@ -879,68 +1154,11 @@ class EarlyMilestoneRAG:
             return self.extractive_fallback(question, retrieved), retrieved
 
     def extractive_fallback(self, question: str, retrieved: list[Chunk]) -> str:
-        focus_terms = get_focus_terms(question)
-        qtypes = question_types(question)
-        candidates: dict[str, tuple[float, str]] = {}
-
-        for source_rank, chunk in enumerate(retrieved):
-            if not chunk.text:
-                continue
-
-            spans = split_into_spans(chunk.text)
-            for span in spans:
-                if not span:
-                    continue
-
-                for candidate, bonus, candidate_context in extract_type_candidates(qtypes, span):
-                    add_candidate(
-                        candidates,
-                        candidate,
-                        focus_terms,
-                        source_rank,
-                        bonus,
-                        context_text=candidate_context,
-                    )
-
-                for candidate, bonus, candidate_context in extract_relation_candidates(question, span):
-                    add_candidate(
-                        candidates,
-                        candidate,
-                        focus_terms,
-                        source_rank,
-                        bonus,
-                        context_text=candidate_context,
-                    )
-
-                span_terms = set(tokenize(span))
-                overlap = len(span_terms & focus_terms)
-                if overlap == 0:
-                    continue
-
-                short_span = " ".join(span.split()[:10])
-                add_candidate(
-                    candidates,
-                    short_span,
-                    focus_terms,
-                    source_rank,
-                    2.2,
-                    context_text=span,
-                )
-
-                if len(span.split()) <= 12:
-                    add_candidate(
-                        candidates,
-                        span,
-                        focus_terms,
-                        source_rank,
-                        2.6,
-                        context_text=span,
-                    )
-
+        candidates = collect_answer_candidates(question, retrieved)
         if not candidates:
             return "unknown"
 
-        best_answer = max(candidates.values(), key=lambda item: item[0])[1]
+        best_answer = candidates[0][1]
         return postprocess_answer(question, best_answer)
 
 
