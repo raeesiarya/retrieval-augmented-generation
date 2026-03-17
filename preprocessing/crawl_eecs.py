@@ -73,6 +73,14 @@ TAIL_NOISE_MARKERS = [
     " Our Staff Staff Awards ",
 ]
 MIN_WORDS = 20
+LOGIN_WALL_MARKERS = (
+    "calnet",
+    "sign in",
+    "log in",
+    "login",
+    "single sign-on",
+    "shibboleth",
+)
 
 
 def normalize_space(text: str) -> str:
@@ -273,6 +281,14 @@ def strip_tail_noise(text: str) -> str:
     return normalize_space(cleaned)
 
 
+def looks_like_login_wall(soup: BeautifulSoup, text: str) -> bool:
+    if soup.find("input", attrs={"type": "password"}):
+        return True
+
+    lowered = text.casefold()
+    return any(marker in lowered for marker in LOGIN_WALL_MARKERS)
+
+
 def is_noise_line(line: str) -> bool:
     lowered = line.casefold()
     if lowered in NOISE_EXACT:
@@ -337,6 +353,9 @@ def open_page(page_url: str) -> dict[str, str] | None:
     title = extract_title(soup, page_url)
     content = select_content_root(soup)
     text = extract_clean_text(content)
+
+    if looks_like_login_wall(soup, text):
+        return None
 
     if len(text.split()) < MIN_WORDS:
         return None
