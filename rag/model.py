@@ -275,6 +275,13 @@ def get_focus_terms(question: str) -> set[str]:
     return {token for token in tokenize(question) if token not in STOP_WORDS}
 
 
+def get_focus_ngrams(question: str, n: int = 2) -> set[str]:
+    tokens = [token for token in tokenize(question) if token not in STOP_WORDS]
+    if len(tokens) < n:
+        return set()
+    return {" ".join(tokens[i : i + n]) for i in range(len(tokens) - n + 1)}
+
+
 def cleanup_answer_text(text: str) -> str:
     text = text.replace("\u2013", "-").replace("\u2014", "-")
     cleaned = normalize_space(text)
@@ -559,6 +566,62 @@ def postprocess_answer(question: str, answer: str) -> str:
 
     return cleaned
 
+
+def retrieval_bonus(question: str, chunk: Chunk) -> float:
+    qtypes = question_types(question)
+    focus_terms = get_focus_terms(question)
+    focus_bigrams = get_focus_ngrams(question, n=2)
+    question_lower = question.casefold()
+    text_lower = chunk.text.casefold()
+    url_lower = chunk.url.casefold()
+    retrieval_lower = chunk.retrieval_text.casefold()
+
+    bonus = 0.0
+
+    overlap = len(set(tokenize(chunk.retrieval_text)) & focus_terms)
+    if overlap >= 2:
+        bonus += 0.15 * min(overlap, 4)
+
+    matched_bigrams = sum(1 for bigram in focus_bigrams if bigram in retrieval_lower)
+    if matched_bigrams:
+        bonus += 0.35 * min(matched_bigrams, 2)
+
+    if any(role in question_lower for role in ("director", "chair", "manager", "coordinator", "advisor")):
+        if any(role in text_lower for role in ("director", "chair", "manager", "coordinator", "advisor")):
+            bonus += 0.7
+
+    if "person" in qtypes:
+        person_name = extract_person_name_from_question(question)
+        if person_name:
+            normalized_name = normalize_space(person_name).casefold()
+            surname = normalized_name.split()[-1]
+            if normalized_name in retrieval_lower:
+                bonus += 3.0
+            if surname in url_lower:
+                bonus += 1.4
+            elif surname in retrieval_lower:
+                bonus += 0.8
+        if any(path in url_lower for path in ("/people/", "/staff/", "/leadership", "/faculty/", "/homepages/")):
+            bonus += 1.0
+
+    if "email" in qtypes or "phone" in qtypes:
+        if any(cue in text_lower for cue in ("email", "contact", "phone", "telephone")):
+            bonus += 0.9
+        if any(path in url_lower for path in ("/contact", "/staff/", "/leadership", "/people/")):
+            bonus += 1.1
+
+    if "location" in qtypes:
+        if any(cue in text_lower for cue in ("office", "located", "address", "hall", "room", "building")):
+            bonus += 0.9
+        if any(path in url_lower for path in ("/contact", "/visiting", "/staff/", "/people/", "/homepages/")):
+            bonus += 1.0
+
+    if "date" in qtypes or "year" in qtypes:
+        if any(path in url_lower for path in ("/news/", "/about/history", "/special-events", "/events/")):
+            bonus += 0.7
+
+    return bonus
+
 # chunking
 DEFAULT_TOP_K = 4
 DEFAULT_CHUNK_SIZE = 140
@@ -704,45 +767,68 @@ class BM25Index:
         if top_k <= 0:
             return []
 
-        candidate_limit = candidate_k or max(24, top_k * 8)
-        scored_chunks = self._score_query(query)[:candidate_limit]
-        if not scored_chunks:
+        candidate_limit = candidate_k or max(28, top_k * 10)
+        raw_scored_chunks = self._score_query(query)[:candidate_limit]
+        if not raw_scored_chunks:
             return []
 
-        by_url: dict[str, list[tuple[float, int]]] = {}
-        for score, chunk_idx in scored_chunks:
+        reranked_chunks: list[tuple[float, float, int]] = []
+        for score, chunk_idx in raw_scored_chunks:
+            adjusted_score = score + retrieval_bonus(query, self.chunks[chunk_idx])
+            reranked_chunks.append((adjusted_score, score, chunk_idx))
+        reranked_chunks.sort(reverse=True)
+
+        by_url: dict[str, list[tuple[float, float, int]]] = {}
+        for adjusted_score, raw_score, chunk_idx in reranked_chunks:
             url = self.chunks[chunk_idx].url
-            by_url.setdefault(url, []).append((score, chunk_idx))
+            by_url.setdefault(url, []).append((adjusted_score, raw_score, chunk_idx))
 
         ranked_urls: list[tuple[float, str]] = []
         for url, url_chunks in by_url.items():
             url_chunks.sort(reverse=True)
             best_score = url_chunks[0][0]
-            support_score = sum(score for score, _ in url_chunks[1:3])
-            url_score = best_score + 0.15 * support_score
+            support_score = sum(score for score, _, _ in url_chunks[1:3])
+            url_score = best_score + 0.25 * support_score
             ranked_urls.append((url_score, url))
 
         ranked_urls.sort(reverse=True)
+        url_scores = {url: score for score, url in ranked_urls}
+
+        qtypes = question_types(query)
+        repeat_penalty = 1.25
+        if qtypes & {"person", "email", "phone", "location"}:
+            repeat_penalty = 0.8
+            max_chunks_per_url = max(max_chunks_per_url, 3)
+        elif qtypes & {"date", "year"}:
+            repeat_penalty = 1.0
+
+        candidate_pool: list[tuple[str, int, float, int]] = []
+        for _, url in ranked_urls:
+            for rank_within_url, (adjusted_score, _, chunk_idx) in enumerate(by_url[url][:max_chunks_per_url]):
+                candidate_pool.append((url, rank_within_url, adjusted_score, chunk_idx))
 
         selected_indices: list[int] = []
-        selected_urls: list[str] = []
+        selected_set: set[int] = set()
+        url_use_count: Counter[str] = Counter()
 
-        for _, url in ranked_urls:
-            selected_indices.append(by_url[url][0][1])
-            selected_urls.append(url)
-            if len(selected_indices) >= top_k:
-                return [self.chunks[idx] for idx in selected_indices]
+        while len(selected_indices) < top_k:
+            best_item: tuple[float, int] | None = None
+            for url, rank_within_url, adjusted_score, chunk_idx in candidate_pool:
+                if chunk_idx in selected_set:
+                    continue
+                final_score = adjusted_score + 0.08 * url_scores[url]
+                final_score -= repeat_penalty * url_use_count[url]
+                final_score -= 0.3 * rank_within_url
+                if best_item is None or final_score > best_item[0]:
+                    best_item = (final_score, chunk_idx)
 
-        extra_chunks: list[tuple[float, int]] = []
-        for url in selected_urls:
-            for score, chunk_idx in by_url[url][1:max_chunks_per_url]:
-                extra_chunks.append((score, chunk_idx))
-
-        extra_chunks.sort(reverse=True)
-        for _, chunk_idx in extra_chunks:
-            selected_indices.append(chunk_idx)
-            if len(selected_indices) >= top_k:
+            if best_item is None:
                 break
+
+            _, chunk_idx = best_item
+            selected_indices.append(chunk_idx)
+            selected_set.add(chunk_idx)
+            url_use_count[self.chunks[chunk_idx].url] += 1
 
         return [self.chunks[idx] for idx in selected_indices]
 
