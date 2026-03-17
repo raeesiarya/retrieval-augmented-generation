@@ -1,59 +1,38 @@
 from collections import deque
 from tqdm import tqdm
-import urllib.request
-import urllib.error
+import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import re
 import json
 
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-
-BAD_EXTENSIONS = (
-    ".pdf",
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".gif",
-    ".mp4",
-    ".ps",
-    ".ps.gz",
-    ".doc",
-    ".zip",
-    ".bin",
-    ".xml",
-    ".atom",
-)
-
-ALLOWED_DOMAINS = {
-    "eecs.berkeley.edu",
-    "www.eecs.berkeley.edu",
-    "www2.eecs.berkeley.edu",
-}
-
-
-def fetch_url(url: str) -> str | None:
-    """Fetch HTML content from a URL."""
-
-    req = urllib.request.Request(url, headers=HEADERS)
-
-    try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            content_type = response.headers.get("Content-Type", "")
-
-            if "text/html" not in content_type:
-                return None
-
-            html = response.read().decode("utf-8", errors="ignore")
-            return html
-
-    except Exception:
-        return None
+SESSION = requests.Session()
+SESSION.headers.update({"User-Agent": "Mozilla/5.0"})
 
 
 def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) -> list:
-    """Crawl the EECS website and collect internal URLs."""
+    """
+    Crawl the EECS website and return all internal URLs.
+    """
+
+    BAD_EXTENSIONS = (
+        ".pdf",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".mp4",
+        ".ps",
+        ".ps.gz",
+        ".doc",
+        ".zip",
+        ".bin",
+        ".xml",
+        ".atom",
+    )
+
+    HEADERS = {"User-Agent": "Mozilla/5.0"}
 
     visited = set()
     queued = {base_url}
@@ -73,17 +52,20 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
         pbar.update(1)
         pbar.set_postfix(queue=len(to_visit), visited=len(visited))
 
-        html = fetch_url(url)
-
-        if not html:
+        try:
+            response = SESSION.get(url, headers=HEADERS, timeout=5)
+        except requests.RequestException:
             continue
 
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(response.text, "html.parser")
 
         for link in soup.find_all("a", href=True):
             full_url = urljoin(url, link["href"])
 
             parsed = urlparse(full_url)
+
+            if parsed.path == "":
+                full_url = parsed.scheme + "://" + parsed.netloc
 
             # normalize URL
             full_url = full_url.split("#")[0]
@@ -92,28 +74,20 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
 
             parsed = urlparse(full_url)
 
-            # domain filter
-            if parsed.netloc not in ALLOWED_DOMAINS:
+            # only crawl the main EECS site
+            if parsed.netloc not in {"eecs.berkeley.edu", "www.eecs.berkeley.edu"}:
                 continue
 
-            # skip email links
+            # skip mail links
             if full_url.startswith("mailto:"):
                 continue
 
-            # skip file downloads
+            # skip downloads / non-html
             if full_url.lower().endswith(BAD_EXTENSIONS):
                 continue
 
             # skip CGI endpoints
             if "cgi-bin" in full_url or ".cgi" in full_url:
-                continue
-
-            # skip faculty home directories
-            if "/~" in full_url:
-                continue
-
-            # skip wordpress pagination
-            if re.search(r"/page/\d+", full_url):
                 continue
 
             if full_url not in visited and full_url not in queued:
@@ -126,8 +100,6 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
 
 
 def remove_repeated_lines(text: str) -> str:
-    """Remove duplicate sentences."""
-
     sentences = re.split(r"(?<=[.!?]) +", text)
 
     seen = set()
@@ -135,7 +107,6 @@ def remove_repeated_lines(text: str) -> str:
 
     for s in sentences:
         s = s.strip()
-
         if not s or s in seen:
             continue
 
@@ -146,22 +117,28 @@ def remove_repeated_lines(text: str) -> str:
 
 
 def open_page(page_url: str) -> str:
-    """Extract clean text from a webpage."""
+    """Open the URL and return clean text from the page."""
 
-    html = fetch_url(page_url)
-
-    if not html:
+    try:
+        response = SESSION.get(page_url, timeout=5)
+    except Exception:
         return ""
 
-    soup = BeautifulSoup(html, "html.parser")
+    if response.status_code != 200:
+        return ""
 
-    # remove junk elements
+    content_type = response.headers.get("content-type", "")
+    if "text/html" not in content_type:
+        return ""
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
     for tag in soup(
         ["script", "style", "nav", "footer", "header", "noscript", "aside", "form"]
     ):
         tag.decompose()
 
-    # try to locate main content
+    # try to extract main content
     content = soup.select_one(
         "main article, main .content, main .page-content, article"
     )
@@ -170,16 +147,14 @@ def open_page(page_url: str) -> str:
         content = soup.body if soup.body else soup
 
     text = content.get_text(separator=" ")
-
     text = " ".join(text.split())
-
     text = remove_repeated_lines(text)
 
     return text
 
 
 def process_urls(urls: list) -> list:
-    """Extract text from all crawled URLs."""
+    """Go through the list of urls and get the text of each page."""
 
     documents = []
 
@@ -201,24 +176,22 @@ def process_urls(urls: list) -> list:
 
 
 def save_documents(documents: list, output_file_path: str) -> None:
-    """Save documents to JSONL."""
+    """Save the documents to a JSONL file."""
 
     with open(output_file_path, "w", encoding="utf-8") as f:
         for doc in documents:
             json.dump(doc, f, ensure_ascii=False)
-
             f.write("\n")
 
 
 if __name__ == "__main__":
     urls = get_urls(limit=50000)
-
     documents = process_urls(urls)
 
     print("Pages scraped:", len(documents))
 
-    for doc in documents[:10]:
+    for doc in documents:
         print("\nURL:", doc["url"])
-        print(doc["text"][:500])
+        print(doc["text"])
 
     save_documents(documents, "data/crawl_eecs_raw.jsonl")

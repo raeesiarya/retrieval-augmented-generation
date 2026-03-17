@@ -1,0 +1,1825 @@
+{
+  "llm_status": {
+    "status": "mixed",
+    "successful": null,
+    "datasets": {
+      "validation_seed": {
+        "status": "unknown_existing_predictions",
+        "successful": null,
+        "used_for_prediction_generation": false,
+        "prediction_source": "file:predictions.txt"
+      },
+      "holdout_mini": {
+        "status": "successful",
+        "successful": true,
+        "used_for_prediction_generation": true,
+        "prediction_source": "generated"
+      },
+      "holdout_mini2": {
+        "status": "successful",
+        "successful": true,
+        "used_for_prediction_generation": true,
+        "prediction_source": "generated"
+      },
+      "holdout_mini3": {
+        "status": "successful",
+        "successful": true,
+        "used_for_prediction_generation": true,
+        "prediction_source": "generated"
+      },
+      "reference_legacy": {
+        "status": "successful",
+        "successful": true,
+        "used_for_prediction_generation": true,
+        "prediction_source": "generated"
+      }
+    }
+  },
+  "mode": "default_suite",
+  "corpus_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/data/crawl_eecs_raw.jsonl",
+  "top_k": 4,
+  "chunk_size": 140,
+  "chunk_overlap": 30,
+  "generated_predictions_use_llm": true,
+  "datasets": {
+    "validation_seed": {
+      "llm_status": {
+        "status": "unknown_existing_predictions",
+        "successful": null,
+        "used_for_prediction_generation": false,
+        "prediction_source": "file:predictions.txt"
+      },
+      "name": "validation_seed",
+      "references_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/data/qa_validation_seed.jsonl",
+      "questions_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/questions_validation.txt",
+      "predictions_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/predictions.txt",
+      "prediction_source": "file:predictions.txt",
+      "dataset_profile": {
+        "count": 100,
+        "unique_urls": 33,
+        "unique_domains": 1,
+        "unique_url_fraction": 0.33,
+        "top_5_url_share": 0.37,
+        "top_10_url_share": 0.55,
+        "max_questions_per_url": 15,
+        "page_type_counts": {
+          "contact": 7,
+          "people": 38,
+          "academics": 16,
+          "about": 18,
+          "connect": 7,
+          "general": 1,
+          "news": 4,
+          "resources": 6,
+          "research": 3
+        },
+        "domain_counts": {
+          "eecs.berkeley.edu": 100
+        }
+      },
+      "summary": {
+        "count": 100,
+        "exact_match": 0.65,
+        "f1": 0.7578577533577533,
+        "unknown_rate": 0.09,
+        "retrieval": {
+          "url_recall_at_k": 0.73,
+          "answer_in_top_k": 0.81,
+          "conditional_on_gold_url_retrieved": {
+            "count": 73,
+            "exact_match": 0.8082191780821918,
+            "f1": 0.8979786575676986,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.9726027397260274,
+            "unknown_rate": 0.0136986301369863
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 81,
+            "exact_match": 0.8024691358024691,
+            "f1": 0.9212235638161562,
+            "url_recall_at_k": 0.8765432098765432,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      },
+      "slices": {
+        "by_page_type": {
+          "about": {
+            "count": 18,
+            "exact_match": 0.5555555555555556,
+            "f1": 0.7679487179487181,
+            "url_recall_at_k": 0.6666666666666666,
+            "answer_in_top_k": 0.7777777777777778,
+            "unknown_rate": 0.1111111111111111
+          },
+          "academics": {
+            "count": 16,
+            "exact_match": 0.5625,
+            "f1": 0.7372519841269842,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.9375,
+            "unknown_rate": 0.0
+          },
+          "connect": {
+            "count": 7,
+            "exact_match": 0.42857142857142855,
+            "f1": 0.6476190476190476,
+            "url_recall_at_k": 0.8571428571428571,
+            "answer_in_top_k": 0.7142857142857143,
+            "unknown_rate": 0.2857142857142857
+          },
+          "contact": {
+            "count": 7,
+            "exact_match": 0.5714285714285714,
+            "f1": 0.7571428571428571,
+            "url_recall_at_k": 0.5714285714285714,
+            "answer_in_top_k": 0.8571428571428571,
+            "unknown_rate": 0.0
+          },
+          "general": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "news": {
+            "count": 4,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "people": {
+            "count": 38,
+            "exact_match": 0.7368421052631579,
+            "f1": 0.7543859649122807,
+            "url_recall_at_k": 0.631578947368421,
+            "answer_in_top_k": 0.7368421052631579,
+            "unknown_rate": 0.13157894736842105
+          },
+          "research": {
+            "count": 3,
+            "exact_match": 0.3333333333333333,
+            "f1": 0.3333333333333333,
+            "url_recall_at_k": 0.6666666666666666,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.0
+          },
+          "resources": {
+            "count": 6,
+            "exact_match": 0.8333333333333334,
+            "f1": 0.9444444444444443,
+            "url_recall_at_k": 0.6666666666666666,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_lead_question_word": {
+          "about": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "do": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "during": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.5,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "how_many": {
+            "count": 6,
+            "exact_match": 0.8333333333333334,
+            "f1": 0.8333333333333334,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "how_much": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.5,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 0.0
+          },
+          "in": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "on": {
+            "count": 2,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "to": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.6,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "what": {
+            "count": 42,
+            "exact_match": 0.6904761904761905,
+            "f1": 0.7664224664224665,
+            "url_recall_at_k": 0.6904761904761905,
+            "answer_in_top_k": 0.7857142857142857,
+            "unknown_rate": 0.09523809523809523
+          },
+          "where": {
+            "count": 4,
+            "exact_match": 0.25,
+            "f1": 0.8500000000000001,
+            "url_recall_at_k": 0.5,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "which": {
+            "count": 15,
+            "exact_match": 0.5333333333333333,
+            "f1": 0.7197354497354496,
+            "url_recall_at_k": 0.9333333333333333,
+            "answer_in_top_k": 0.8666666666666667,
+            "unknown_rate": 0.06666666666666667
+          },
+          "who": {
+            "count": 23,
+            "exact_match": 0.6521739130434783,
+            "f1": 0.6869565217391305,
+            "url_recall_at_k": 0.5652173913043478,
+            "answer_in_top_k": 0.6956521739130435,
+            "unknown_rate": 0.17391304347826086
+          }
+        },
+        "by_gold_answer_shape": {
+          "dateish": {
+            "count": 4,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "email": {
+            "count": 19,
+            "exact_match": 0.6842105263157895,
+            "f1": 0.6842105263157895,
+            "url_recall_at_k": 0.5789473684210527,
+            "answer_in_top_k": 0.6842105263157895,
+            "unknown_rate": 0.15789473684210525
+          },
+          "entityish": {
+            "count": 48,
+            "exact_match": 0.6041666666666666,
+            "f1": 0.7635925417175419,
+            "url_recall_at_k": 0.7083333333333334,
+            "answer_in_top_k": 0.8125,
+            "unknown_rate": 0.10416666666666667
+          },
+          "numberish": {
+            "count": 20,
+            "exact_match": 0.65,
+            "f1": 0.7733333333333333,
+            "url_recall_at_k": 0.85,
+            "answer_in_top_k": 0.85,
+            "unknown_rate": 0.05
+          },
+          "other": {
+            "count": 4,
+            "exact_match": 0.5,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 0.75,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "phone": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "yearish": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 0.6666666666666666,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.0
+          },
+          "yes_no": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_question_type": {
+          "course": {
+            "count": 4,
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "url_recall_at_k": 0.75,
+            "answer_in_top_k": 0.75,
+            "unknown_rate": 0.25
+          },
+          "date": {
+            "count": 4,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 0.75,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "degree": {
+            "count": 5,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "email": {
+            "count": 18,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 0.5555555555555556,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.16666666666666666
+          },
+          "location": {
+            "count": 23,
+            "exact_match": 0.5217391304347826,
+            "f1": 0.7140786749482402,
+            "url_recall_at_k": 0.6086956521739131,
+            "answer_in_top_k": 0.7391304347826086,
+            "unknown_rate": 0.17391304347826086
+          },
+          "number": {
+            "count": 9,
+            "exact_match": 0.7777777777777778,
+            "f1": 0.8333333333333334,
+            "url_recall_at_k": 0.8888888888888888,
+            "answer_in_top_k": 0.8888888888888888,
+            "unknown_rate": 0.0
+          },
+          "other": {
+            "count": 20,
+            "exact_match": 0.55,
+            "f1": 0.7586538461538461,
+            "url_recall_at_k": 0.85,
+            "answer_in_top_k": 0.9,
+            "unknown_rate": 0.0
+          },
+          "person": {
+            "count": 28,
+            "exact_match": 0.6785714285714286,
+            "f1": 0.7071428571428572,
+            "url_recall_at_k": 0.5714285714285714,
+            "answer_in_top_k": 0.7142857142857143,
+            "unknown_rate": 0.17857142857142858
+          },
+          "phone": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "time": {
+            "count": 3,
+            "exact_match": 0.3333333333333333,
+            "f1": 0.7962962962962963,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "university": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "year": {
+            "count": 2,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "yesno": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      },
+      "fallback_only": {
+        "count": 100,
+        "exact_match": 0.2,
+        "f1": 0.29243854829381144,
+        "unknown_rate": 0.0,
+        "retrieval": {
+          "url_recall_at_k": 0.73,
+          "answer_in_top_k": 0.81,
+          "conditional_on_gold_url_retrieved": {
+            "count": 73,
+            "exact_match": 0.2328767123287671,
+            "f1": 0.3156692442380978,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.9726027397260274,
+            "unknown_rate": 0.0
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 81,
+            "exact_match": 0.24691358024691357,
+            "f1": 0.35280479213227744,
+            "url_recall_at_k": 0.8765432098765432,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      }
+    },
+    "holdout_mini": {
+      "llm_status": {
+        "status": "successful",
+        "successful": true,
+        "used_for_prediction_generation": true,
+        "prediction_source": "generated"
+      },
+      "name": "holdout_mini",
+      "references_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/data/qa_holdout_mini.jsonl",
+      "questions_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/questions_holdout_mini.txt",
+      "predictions_path": null,
+      "prediction_source": "generated",
+      "dataset_profile": {
+        "count": 30,
+        "unique_urls": 19,
+        "unique_domains": 1,
+        "unique_url_fraction": 0.6333333333333333,
+        "top_5_url_share": 0.43333333333333335,
+        "top_10_url_share": 0.7,
+        "max_questions_per_url": 3,
+        "page_type_counts": {
+          "contact": 9,
+          "resources": 3,
+          "about": 4,
+          "research": 4,
+          "news": 3,
+          "connect": 1,
+          "academics": 6
+        },
+        "domain_counts": {
+          "eecs.berkeley.edu": 30
+        }
+      },
+      "summary": {
+        "count": 30,
+        "exact_match": 0.8,
+        "f1": 0.8886363636363637,
+        "unknown_rate": 0.03333333333333333,
+        "retrieval": {
+          "url_recall_at_k": 0.9666666666666667,
+          "answer_in_top_k": 0.9,
+          "conditional_on_gold_url_retrieved": {
+            "count": 29,
+            "exact_match": 0.7931034482758621,
+            "f1": 0.8847962382445141,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.896551724137931,
+            "unknown_rate": 0.034482758620689655
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 27,
+            "exact_match": 0.8148148148148148,
+            "f1": 0.9132996632996634,
+            "url_recall_at_k": 0.9629629629629629,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      },
+      "slices": {
+        "by_page_type": {
+          "about": {
+            "count": 4,
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "url_recall_at_k": 0.75,
+            "answer_in_top_k": 0.75,
+            "unknown_rate": 0.25
+          },
+          "academics": {
+            "count": 6,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.9015151515151515,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.8333333333333334,
+            "unknown_rate": 0.0
+          },
+          "connect": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "contact": {
+            "count": 9,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.8888888888888888,
+            "unknown_rate": 0.0
+          },
+          "news": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.8333333333333334,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "research": {
+            "count": 4,
+            "exact_match": 0.75,
+            "f1": 0.9375,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "resources": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_lead_question_word": {
+          "during": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 0.5
+          },
+          "from": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "how_many": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.8333333333333334,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.0
+          },
+          "how_old": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.5,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "in": {
+            "count": 2,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "the": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.9090909090909091,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "to": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 0.0
+          },
+          "what": {
+            "count": 12,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "which": {
+            "count": 4,
+            "exact_match": 0.75,
+            "f1": 0.9375,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "who": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 0.6666666666666666,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_gold_answer_shape": {
+          "dateish": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "email": {
+            "count": 6,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "entityish": {
+            "count": 14,
+            "exact_match": 0.7142857142857143,
+            "f1": 0.8685064935064934,
+            "url_recall_at_k": 0.9285714285714286,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "numberish": {
+            "count": 4,
+            "exact_match": 0.75,
+            "f1": 0.875,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 0.0
+          },
+          "phone": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "yearish": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 0.5
+          }
+        },
+        "by_question_type": {
+          "date": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "degree": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.75,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "email": {
+            "count": 6,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "location": {
+            "count": 5,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "number": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.8333333333333334,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.0
+          },
+          "other": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.8333333333333334,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "person": {
+            "count": 6,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 0.8333333333333334,
+            "answer_in_top_k": 0.8333333333333334,
+            "unknown_rate": 0.16666666666666666
+          },
+          "phone": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "professorship": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "team": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 0.0
+          },
+          "token": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "university": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.9166666666666666,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "year": {
+            "count": 7,
+            "exact_match": 0.5714285714285714,
+            "f1": 0.7727272727272727,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.7142857142857143,
+            "unknown_rate": 0.14285714285714285
+          }
+        }
+      },
+      "fallback_only": {
+        "count": 30,
+        "exact_match": 0.6666666666666666,
+        "f1": 0.7067460317460319,
+        "unknown_rate": 0.0,
+        "retrieval": {
+          "url_recall_at_k": 0.9666666666666667,
+          "answer_in_top_k": 0.9,
+          "conditional_on_gold_url_retrieved": {
+            "count": 29,
+            "exact_match": 0.6551724137931034,
+            "f1": 0.6966338259441709,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.896551724137931,
+            "unknown_rate": 0.0
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 27,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.711199294532628,
+            "url_recall_at_k": 0.9629629629629629,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      }
+    },
+    "holdout_mini2": {
+      "llm_status": {
+        "status": "successful",
+        "successful": true,
+        "used_for_prediction_generation": true,
+        "prediction_source": "generated"
+      },
+      "name": "holdout_mini2",
+      "references_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/data/qa_holdout_mini2.jsonl",
+      "questions_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/questions_holdout_mini2.txt",
+      "predictions_path": null,
+      "prediction_source": "generated",
+      "dataset_profile": {
+        "count": 31,
+        "unique_urls": 15,
+        "unique_domains": 1,
+        "unique_url_fraction": 0.4838709677419355,
+        "top_5_url_share": 0.5161290322580645,
+        "top_10_url_share": 0.8387096774193549,
+        "max_questions_per_url": 4,
+        "page_type_counts": {
+          "resources": 9,
+          "about": 5,
+          "people": 3,
+          "research": 2,
+          "academics": 8,
+          "connect": 3,
+          "contact": 1
+        },
+        "domain_counts": {
+          "eecs.berkeley.edu": 31
+        }
+      },
+      "summary": {
+        "count": 31,
+        "exact_match": 0.7419354838709677,
+        "f1": 0.8482404692082112,
+        "unknown_rate": 0.03225806451612903,
+        "retrieval": {
+          "url_recall_at_k": 0.9032258064516129,
+          "answer_in_top_k": 0.9354838709677419,
+          "conditional_on_gold_url_retrieved": {
+            "count": 28,
+            "exact_match": 0.7857142857142857,
+            "f1": 0.9034090909090909,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.03571428571428571
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 29,
+            "exact_match": 0.7931034482758621,
+            "f1": 0.9067398119122257,
+            "url_recall_at_k": 0.9655172413793104,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.034482758620689655
+          }
+        }
+      },
+      "slices": {
+        "by_page_type": {
+          "about": {
+            "count": 5,
+            "exact_match": 0.8,
+            "f1": 0.96,
+            "url_recall_at_k": 0.8,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "academics": {
+            "count": 8,
+            "exact_match": 0.875,
+            "f1": 0.875,
+            "url_recall_at_k": 0.875,
+            "answer_in_top_k": 0.875,
+            "unknown_rate": 0.0
+          },
+          "connect": {
+            "count": 3,
+            "exact_match": 0.3333333333333333,
+            "f1": 0.7651515151515151,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "contact": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "people": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 0.6666666666666666,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.0
+          },
+          "research": {
+            "count": 2,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "resources": {
+            "count": 9,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.8,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.1111111111111111
+          }
+        },
+        "by_lead_question_word": {
+          "about": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.7499999999999999,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "how_many": {
+            "count": 4,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "on": {
+            "count": 5,
+            "exact_match": 0.6,
+            "f1": 0.8400000000000001,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "what": {
+            "count": 14,
+            "exact_match": 0.8571428571428571,
+            "f1": 0.8961038961038961,
+            "url_recall_at_k": 0.9285714285714286,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.07142857142857142
+          },
+          "where": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.9,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "which": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "url_recall_at_k": 0.5,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 0.0
+          },
+          "who": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 0.6666666666666666,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_gold_answer_shape": {
+          "dateish": {
+            "count": 4,
+            "exact_match": 0.75,
+            "f1": 0.8863636363636364,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "email": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.3333333333333333
+          },
+          "entityish": {
+            "count": 7,
+            "exact_match": 0.8571428571428571,
+            "f1": 0.8571428571428571,
+            "url_recall_at_k": 0.8571428571428571,
+            "answer_in_top_k": 0.8571428571428571,
+            "unknown_rate": 0.0
+          },
+          "numberish": {
+            "count": 10,
+            "exact_match": 0.7,
+            "f1": 0.8550000000000001,
+            "url_recall_at_k": 0.9,
+            "answer_in_top_k": 0.9,
+            "unknown_rate": 0.0
+          },
+          "other": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.4,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "yearish": {
+            "count": 6,
+            "exact_match": 0.8333333333333334,
+            "f1": 0.9666666666666667,
+            "url_recall_at_k": 0.8333333333333334,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_question_type": {
+          "course": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 0.6666666666666666,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.0
+          },
+          "date": {
+            "count": 9,
+            "exact_match": 0.7777777777777778,
+            "f1": 0.9272727272727272,
+            "url_recall_at_k": 0.8888888888888888,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "degree": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "email": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.3333333333333333
+          },
+          "location": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.9333333333333332,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "number": {
+            "count": 4,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "other": {
+            "count": 4,
+            "exact_match": 0.75,
+            "f1": 0.85,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "person": {
+            "count": 4,
+            "exact_match": 0.5,
+            "f1": 0.6875,
+            "url_recall_at_k": 0.75,
+            "answer_in_top_k": 0.75,
+            "unknown_rate": 0.0
+          },
+          "year": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      },
+      "fallback_only": {
+        "count": 31,
+        "exact_match": 0.1935483870967742,
+        "f1": 0.3205541770057899,
+        "unknown_rate": 0.0,
+        "retrieval": {
+          "url_recall_at_k": 0.9032258064516129,
+          "answer_in_top_k": 0.9354838709677419,
+          "conditional_on_gold_url_retrieved": {
+            "count": 28,
+            "exact_match": 0.17857142857142858,
+            "f1": 0.30132783882783887,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 29,
+            "exact_match": 0.20689655172413793,
+            "f1": 0.3254199823165341,
+            "url_recall_at_k": 0.9655172413793104,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      }
+    },
+    "holdout_mini3": {
+      "llm_status": {
+        "status": "successful",
+        "successful": true,
+        "used_for_prediction_generation": true,
+        "prediction_source": "generated"
+      },
+      "name": "holdout_mini3",
+      "references_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/data/qa_holdout_mini3.jsonl",
+      "questions_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/questions_holdout_mini3.txt",
+      "predictions_path": null,
+      "prediction_source": "generated",
+      "dataset_profile": {
+        "count": 31,
+        "unique_urls": 12,
+        "unique_domains": 2,
+        "unique_url_fraction": 0.3870967741935484,
+        "top_5_url_share": 0.5161290322580645,
+        "top_10_url_share": 0.8709677419354839,
+        "max_questions_per_url": 4,
+        "page_type_counts": {
+          "about": 5,
+          "news": 9,
+          "people": 3,
+          "connect": 2,
+          "academics": 3,
+          "research": 7,
+          "general": 2
+        },
+        "domain_counts": {
+          "eecs.berkeley.edu": 29,
+          "www.eecs.berkeley.edu": 2
+        }
+      },
+      "summary": {
+        "count": 31,
+        "exact_match": 0.7419354838709677,
+        "f1": 0.8828282828282829,
+        "unknown_rate": 0.03225806451612903,
+        "retrieval": {
+          "url_recall_at_k": 1.0,
+          "answer_in_top_k": 0.967741935483871,
+          "conditional_on_gold_url_retrieved": {
+            "count": 31,
+            "exact_match": 0.7419354838709677,
+            "f1": 0.8828282828282829,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.967741935483871,
+            "unknown_rate": 0.03225806451612903
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 30,
+            "exact_match": 0.7666666666666667,
+            "f1": 0.9122558922558923,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      },
+      "slices": {
+        "by_page_type": {
+          "about": {
+            "count": 5,
+            "exact_match": 0.6,
+            "f1": 0.76,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "academics": {
+            "count": 3,
+            "exact_match": 0.6666666666666666,
+            "f1": 0.9629629629629629,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "connect": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.7727272727272727,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "general": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.9,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "news": {
+            "count": 9,
+            "exact_match": 0.8888888888888888,
+            "f1": 0.8888888888888888,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.8888888888888888,
+            "unknown_rate": 0.1111111111111111
+          },
+          "people": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "research": {
+            "count": 7,
+            "exact_match": 0.7142857142857143,
+            "f1": 0.9047619047619048,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_lead_question_word": {
+          "about": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 0.5
+          },
+          "at": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "beginning": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "by": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "do": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "how": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "in": {
+            "count": 4,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "on": {
+            "count": 4,
+            "exact_match": 0.5,
+            "f1": 0.8333333333333333,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "what": {
+            "count": 5,
+            "exact_match": 0.8,
+            "f1": 0.909090909090909,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "where": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.8,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "which": {
+            "count": 2,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "who": {
+            "count": 6,
+            "exact_match": 0.5,
+            "f1": 0.7814814814814816,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_gold_answer_shape": {
+          "dateish": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.5454545454545454,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "entityish": {
+            "count": 11,
+            "exact_match": 0.7272727272727273,
+            "f1": 0.8808080808080809,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "numberish": {
+            "count": 9,
+            "exact_match": 0.7777777777777778,
+            "f1": 0.8666666666666667,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.8888888888888888,
+            "unknown_rate": 0.1111111111111111
+          },
+          "other": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "yearish": {
+            "count": 8,
+            "exact_match": 0.75,
+            "f1": 0.9166666666666666,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "yes_no": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_question_type": {
+          "date": {
+            "count": 6,
+            "exact_match": 0.5,
+            "f1": 0.8131313131313131,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "degree": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "location": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.9,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "other": {
+            "count": 11,
+            "exact_match": 0.9090909090909091,
+            "f1": 0.9090909090909091,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.9090909090909091,
+            "unknown_rate": 0.09090909090909091
+          },
+          "person": {
+            "count": 6,
+            "exact_match": 0.5,
+            "f1": 0.7814814814814816,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "university": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "year": {
+            "count": 3,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "yesno": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      },
+      "fallback_only": {
+        "count": 31,
+        "exact_match": 0.0967741935483871,
+        "f1": 0.2590909090909091,
+        "unknown_rate": 0.0,
+        "retrieval": {
+          "url_recall_at_k": 1.0,
+          "answer_in_top_k": 0.967741935483871,
+          "conditional_on_gold_url_retrieved": {
+            "count": 31,
+            "exact_match": 0.0967741935483871,
+            "f1": 0.2590909090909091,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 0.967741935483871,
+            "unknown_rate": 0.0
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 30,
+            "exact_match": 0.1,
+            "f1": 0.2677272727272727,
+            "url_recall_at_k": 1.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      }
+    },
+    "reference_legacy": {
+      "llm_status": {
+        "status": "successful",
+        "successful": true,
+        "used_for_prediction_generation": true,
+        "prediction_source": "generated"
+      },
+      "name": "reference_legacy",
+      "references_path": "/Users/aryaraeesi/Documents/UC Berkeley/cs288/assignments/retrieval-augmented-generation/data/reference.jsonl",
+      "questions_path": null,
+      "predictions_path": null,
+      "prediction_source": "generated",
+      "dataset_profile": {
+        "count": 10,
+        "unique_urls": 10,
+        "unique_domains": 2,
+        "unique_url_fraction": 1.0,
+        "top_5_url_share": 0.5,
+        "top_10_url_share": 1.0,
+        "max_questions_per_url": 1,
+        "page_type_counts": {
+          "legacy_www2": 3,
+          "resources": 1,
+          "news": 1,
+          "people": 2,
+          "pdf": 1,
+          "general": 2
+        },
+        "domain_counts": {
+          "www2.eecs.berkeley.edu": 4,
+          "eecs.berkeley.edu": 6
+        }
+      },
+      "summary": {
+        "count": 10,
+        "exact_match": 0.2,
+        "f1": 0.27999999999999997,
+        "unknown_rate": 0.5,
+        "retrieval": {
+          "url_recall_at_k": 0.0,
+          "answer_in_top_k": 0.5,
+          "conditional_on_gold_url_retrieved": {
+            "count": 0,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 0.0
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 5,
+            "exact_match": 0.4,
+            "f1": 0.5599999999999999,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.4
+          }
+        }
+      },
+      "slices": {
+        "by_page_type": {
+          "general": {
+            "count": 2,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 1.0
+          },
+          "legacy_www2": {
+            "count": 3,
+            "exact_match": 0.0,
+            "f1": 0.26666666666666666,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.6666666666666666,
+            "unknown_rate": 0.6666666666666666
+          },
+          "news": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "pdf": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 1.0
+          },
+          "people": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 0.0
+          },
+          "resources": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 0.0
+          }
+        },
+        "by_lead_question_word": {
+          "how_many": {
+            "count": 2,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 1.0
+          },
+          "what": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 1.0
+          },
+          "when": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "where": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 1.0
+          },
+          "which": {
+            "count": 2,
+            "exact_match": 0.5,
+            "f1": 0.9,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "who": {
+            "count": 3,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.3333333333333333,
+            "unknown_rate": 0.3333333333333333
+          }
+        },
+        "by_gold_answer_shape": {
+          "entityish": {
+            "count": 6,
+            "exact_match": 0.16666666666666666,
+            "f1": 0.3,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 0.3333333333333333
+          },
+          "numberish": {
+            "count": 4,
+            "exact_match": 0.25,
+            "f1": 0.25,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 0.75
+          }
+        },
+        "by_question_type": {
+          "course": {
+            "count": 2,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 1.0
+          },
+          "date": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "degree": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.8,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "location": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 1.0
+          },
+          "number": {
+            "count": 2,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.5,
+            "unknown_rate": 1.0
+          },
+          "other": {
+            "count": 1,
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          },
+          "person": {
+            "count": 3,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.3333333333333333,
+            "unknown_rate": 0.3333333333333333
+          },
+          "university": {
+            "count": 1,
+            "exact_match": 0.0,
+            "f1": 0.8,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      },
+      "fallback_only": {
+        "count": 10,
+        "exact_match": 0.0,
+        "f1": 0.04615384615384615,
+        "unknown_rate": 0.0,
+        "retrieval": {
+          "url_recall_at_k": 0.0,
+          "answer_in_top_k": 0.5,
+          "conditional_on_gold_url_retrieved": {
+            "count": 0,
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 0.0,
+            "unknown_rate": 0.0
+          },
+          "conditional_on_answer_in_top_k": {
+            "count": 5,
+            "exact_match": 0.0,
+            "f1": 0.0923076923076923,
+            "url_recall_at_k": 0.0,
+            "answer_in_top_k": 1.0,
+            "unknown_rate": 0.0
+          }
+        }
+      }
+    }
+  }
+}
