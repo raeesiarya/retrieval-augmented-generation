@@ -28,18 +28,11 @@ coverage.xml
 # uv
 uv.lock
 
-# Data files
-data/
-!data/
-data/*
-!data/reference.jsonl
-!data/qa_validation_seed.jsonl
-!data/qa_validation_iaa_subset.jsonl
-!data/qa_validation_iaa_subset_blind.csv
-!data/qa_validation_README.md
-!data/qa_holdout_mini.jsonl
-!data/qa_holdout_mini2.jsonl
-!data/qa_holdout_mini3.jsonl
-
 # Research
 research/
+
+# raw jsonl
+data/crawl_eecs_raw.jsonl
+
+# crawling
+preprocessing/crawl_eecs.py

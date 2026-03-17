@@ -19,6 +19,7 @@ except ImportError:
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 DEFAULT_CORPUS_CANDIDATES = (
+    "data/crawl_eecs.jsonl",
     "data/crawl_eecs_raw.jsonl",
     "data/eecs_corpus_chunks.jsonl",
     "data/eecs_corpus_clean.jsonl",
