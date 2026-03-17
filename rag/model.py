@@ -153,6 +153,7 @@ STOP_WORDS = {
 }
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
+COURSE_CANONICAL_RE = re.compile(r"^([A-Za-z]{2,8})\s*-?\s*(\d{1,3}[A-Z]?)$")
 def tokenize(text: str) -> list[str]:
     return TOKEN_RE.findall(text.lower())
 
@@ -289,6 +290,15 @@ def cleanup_answer_text(text: str) -> str:
         cleaned = re.sub(r"\s*@\s*", "@", cleaned)
         cleaned = re.sub(r"\s*\.\s*", ".", cleaned)
     return cleaned.strip(" ,;:.")
+
+
+def canonicalize_course_code(text: str) -> str:
+    cleaned = cleanup_answer_text(text)
+    match = COURSE_CANONICAL_RE.fullmatch(cleaned)
+    if not match:
+        return cleaned
+    subject, number = match.groups()
+    return f"{subject.upper()} {number.upper()}"
 
 
 def extract_person_name_from_question(question: str) -> str | None:
@@ -548,12 +558,23 @@ def postprocess_answer(question: str, answer: str) -> str:
             continue
         match = regex.search(cleaned)
         if match:
-            return cleanup_answer_text(match.group(0))
+            extracted = cleanup_answer_text(match.group(0))
+            if regex is COURSE_RE:
+                return canonicalize_course_code(extracted)
+            return extracted
 
     if "yesno" in qtypes:
         yes_no = infer_yes_no(cleaned)
         if yes_no:
             return yes_no
+
+    if "course" in qtypes:
+        return canonicalize_course_code(cleaned)
+
+    if "degree" in qtypes:
+        normalized = cleaned.casefold().replace(" ", "")
+        if normalized in {"phdonly", "phd.only", "ph.donly", "ph.d.only"}:
+            return "PhD. only"
 
     if "listed first" in lowered_question and cleaned.startswith("Recipients "):
         return cleanup_answer_text(cleaned.removeprefix("Recipients "))
@@ -767,7 +788,7 @@ class BM25Index:
         if top_k <= 0:
             return []
 
-        candidate_limit = candidate_k or max(36, top_k * 12)
+        candidate_limit = candidate_k or max(28, top_k * 10)
         raw_scored_chunks = self._score_query(query)[:candidate_limit]
         if not raw_scored_chunks:
             return []
@@ -788,19 +809,19 @@ class BM25Index:
             url_chunks.sort(reverse=True)
             best_score = url_chunks[0][0]
             support_score = sum(score for score, _, _ in url_chunks[1:3])
-            url_score = best_score + 0.3 * support_score
+            url_score = best_score + 0.25 * support_score
             ranked_urls.append((url_score, url))
 
         ranked_urls.sort(reverse=True)
         url_scores = {url: score for score, url in ranked_urls}
 
         qtypes = question_types(query)
-        repeat_penalty = 1.1
+        repeat_penalty = 1.25
         if qtypes & {"person", "email", "phone", "location"}:
-            repeat_penalty = 0.65
+            repeat_penalty = 0.8
             max_chunks_per_url = max(max_chunks_per_url, 3)
         elif qtypes & {"date", "year"}:
-            repeat_penalty = 0.9
+            repeat_penalty = 1.0
 
         candidate_pool: list[tuple[str, int, float, int]] = []
         for _, url in ranked_urls:
@@ -816,7 +837,7 @@ class BM25Index:
             for url, rank_within_url, adjusted_score, chunk_idx in candidate_pool:
                 if chunk_idx in selected_set:
                     continue
-                final_score = adjusted_score + 0.1 * url_scores[url]
+                final_score = adjusted_score + 0.08 * url_scores[url]
                 final_score -= repeat_penalty * url_use_count[url]
                 final_score -= 0.3 * rank_within_url
                 if best_item is None or final_score > best_item[0]:
