@@ -35,6 +35,7 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
     HEADERS = {"User-Agent": "Mozilla/5.0"}
 
     visited = set()
+    seen_domains = set()
     queued = {base_url}
     to_visit = deque([base_url])
 
@@ -73,6 +74,12 @@ def get_urls(base_url: str = "https://eecs.berkeley.edu", limit: int = 50000) ->
             full_url = full_url.rstrip("/")
 
             parsed = urlparse(full_url)
+
+            domain = parsed.netloc
+
+            if domain.endswith("eecs.berkeley.edu") and domain not in seen_domains:
+                seen_domains.add(domain)
+                tqdm.write(f"New subdomain discovered: {domain}")
 
             # only crawl the EECS site
             if not parsed.netloc.endswith("eecs.berkeley.edu"):
