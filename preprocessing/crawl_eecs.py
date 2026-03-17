@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import deque
 import json
 import re
+import sys
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -247,9 +248,12 @@ def prune_noise_nodes(soup: BeautifulSoup) -> None:
         tag.decompose()
 
     for tag in soup.find_all(True):
+        raw_attrs = getattr(tag, "attrs", None)
+        if not isinstance(raw_attrs, dict):
+            raw_attrs = {}
         attrs = " ".join(
             str(value)
-            for key, value in tag.attrs.items()
+            for key, value in raw_attrs.items()
             if key in {"class", "id", "role", "aria-label"}
         ).lower()
         if tag.name in {"nav", "footer"}:
@@ -367,10 +371,18 @@ def process_urls(urls: list[str]) -> list[dict[str, str]]:
     """Fetch and clean the text for each crawled URL."""
 
     documents: list[dict[str, str]] = []
+    skipped_errors = 0
     pbar = tqdm(total=len(urls), desc="Processing pages")
 
     for url in urls:
-        document = open_page(url)
+        try:
+            document = open_page(url)
+        except Exception as exc:
+            skipped_errors += 1
+            print(f"Warning: skipping {url} due to parse error: {exc}", file=sys.stderr)
+            pbar.update(1)
+            continue
+
         pbar.update(1)
 
         if not document:
@@ -379,6 +391,8 @@ def process_urls(urls: list[str]) -> list[dict[str, str]]:
         documents.append(document)
 
     pbar.close()
+    if skipped_errors:
+        print(f"Skipped {skipped_errors} pages due to parse errors.", file=sys.stderr)
     return documents
 
 
