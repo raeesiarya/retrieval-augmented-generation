@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 INPUT_PATH = "data/crawl_eecs_raw.jsonl"
 OUTPUT_PATH = "data/crawl_eecs.jsonl"
+MIN_TEXT_LENGTH = 75
 
 # Add URL substrings here. If a row's URL contains any of these values,
 # that row will be filtered out.
@@ -32,11 +33,13 @@ FILTER_URLS = [
     "http://hkn.eecs.berkeley.edu/about/officers/9",
     "http://chisel.eecs.berkeley.edu",
     "https://chisel.eecs.berkeley.edu",
+    "http://ptolemy.eecs.berkeley.edu/",
+    "https://ptolemy.eecs.berkeley.edu/",
 ]
 
 
 def should_filter(url: str, text: str) -> bool:
-    if text == "":
+    if len(text) < MIN_TEXT_LENGTH:
         return True
 
     for filtered_url in FILTER_URLS:
@@ -50,6 +53,7 @@ def should_filter(url: str, text: str) -> bool:
 def main() -> None:
     kept_rows = 0
     removed_rows = 0
+    seen_texts = set()
 
     with (
         open(INPUT_PATH, "r", encoding="utf-8") as input_file,
@@ -68,6 +72,11 @@ def main() -> None:
                 removed_rows += 1
                 continue
 
+            if text in seen_texts:
+                removed_rows += 1
+                continue
+
+            seen_texts.add(text)
             json.dump(row, output_file, ensure_ascii=False)
             output_file.write("\n")
             kept_rows += 1
