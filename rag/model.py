@@ -154,6 +154,7 @@ STOP_WORDS = {
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 COURSE_CANONICAL_RE = re.compile(r"^([A-Za-z]{2,8})\s*-?\s*(\d{1,3}[A-Z]?)$")
+RANK_RE = re.compile(r"^#\s+(\d+)$")
 def tokenize(text: str) -> list[str]:
     return TOKEN_RE.findall(text.lower())
 
@@ -299,6 +300,27 @@ def canonicalize_course_code(text: str) -> str:
         return cleaned
     subject, number = match.groups()
     return f"{subject.upper()} {number.upper()}"
+
+
+def canonicalize_degree_text(text: str) -> str:
+    cleaned = cleanup_answer_text(text)
+    replacements = (
+        (r"\bM\s*\.?\s*Eng\b(?:\.)?", "M.Eng."),
+        (r"\bM\s*\.?\s*S\b(?:\.)?", "M.S."),
+        (r"\bB\s*\.?\s*S\b(?:\.)?", "B.S."),
+        (r"\bB\s*\.?\s*A\b(?:\.)?", "B.A."),
+    )
+    for pattern, replacement in replacements:
+        cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE)
+    return cleaned
+
+
+def canonicalize_rank(text: str) -> str:
+    cleaned = cleanup_answer_text(text)
+    match = RANK_RE.fullmatch(cleaned)
+    if not match:
+        return cleaned
+    return f"#{match.group(1)}"
 
 
 def extract_person_name_from_question(question: str) -> str | None:
@@ -561,6 +583,8 @@ def postprocess_answer(question: str, answer: str) -> str:
             extracted = cleanup_answer_text(match.group(0))
             if regex is COURSE_RE:
                 return canonicalize_course_code(extracted)
+            if regex is DEGREE_RE:
+                return canonicalize_degree_text(extracted)
             return extracted
 
     if "yesno" in qtypes:
@@ -568,10 +592,15 @@ def postprocess_answer(question: str, answer: str) -> str:
         if yes_no:
             return yes_no
 
+    normalized_rank = canonicalize_rank(cleaned)
+    if normalized_rank != cleaned:
+        return normalized_rank
+
     if "course" in qtypes:
         return canonicalize_course_code(cleaned)
 
     if "degree" in qtypes:
+        cleaned = canonicalize_degree_text(cleaned)
         normalized = cleaned.casefold().replace(" ", "")
         if normalized in {"phdonly", "phd.only", "ph.donly", "ph.d.only"}:
             return "PhD. only"
