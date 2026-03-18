@@ -41,6 +41,12 @@ class Chunk:
     text: str
     retrieval_text: str
 
+
+@dataclass(frozen=True)
+class Page:
+    url: str
+    retrieval_text: str
+
 WHITESPACE_RE = re.compile(r"\s+")
 EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
 PHONE_RE = re.compile(
@@ -225,6 +231,13 @@ def build_retrieval_text(url: str, title: str, text: str) -> str:
     return normalize_space(
         f"{title} {title} {host_text} {url_text} {canonical_text} {text}"
     )
+
+
+def truncate_words(text: str, max_words: int) -> str:
+    words = text.split()
+    if len(words) <= max_words:
+        return text
+    return " ".join(words[:max_words])
 
 
 def question_types(question: str) -> set[str]:
@@ -790,6 +803,45 @@ def load_chunks(
     return chunks
 
 
+def load_pages(corpus_path: Path, max_page_words: int = 500) -> list[Page]:
+    page_text_by_url: dict[str, list[str]] = {}
+    page_title_by_url: dict[str, str] = {}
+
+    with corpus_path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            url = str(row.get("url", "")).strip()
+            text = extract_document_text(row)
+            title = infer_title(row, text)
+            if not url or not text:
+                continue
+
+            page_title_by_url.setdefault(url, title)
+            page_text_by_url.setdefault(url, []).append(text)
+
+    pages: list[Page] = []
+    for url, text_parts in page_text_by_url.items():
+        merged_text = normalize_space(" ".join(text_parts))
+        truncated_text = truncate_words(merged_text, max_page_words)
+        pages.append(
+            Page(
+                url=url,
+                retrieval_text=build_retrieval_text(url, page_title_by_url.get(url, ""), truncated_text),
+            )
+        )
+
+    if not pages:
+        raise ValueError(f"No valid pages loaded from {corpus_path}")
+    return pages
+
+
 def resolve_corpus_path(corpus_arg: str | None) -> Path:
     if corpus_arg:
         path = Path(corpus_arg)
@@ -810,6 +862,52 @@ def resolve_corpus_path(corpus_arg: str | None) -> Path:
     )
 
 # indexing
+class PageIndex:
+    def __init__(self, pages: list[Page], k1: float = 1.5, b: float = 0.75):
+        self.pages = pages
+        self.k1 = k1
+        self.b = b
+        self.doc_tokens = [tokenize(page.retrieval_text) for page in pages]
+        self.doc_lens = [len(tokens) for tokens in self.doc_tokens]
+        self.avg_len = sum(self.doc_lens) / max(1, len(self.doc_lens))
+        self.tf = [Counter(tokens) for tokens in self.doc_tokens]
+        self.df = self._build_document_frequencies()
+        self.n_docs = len(pages)
+
+    def _build_document_frequencies(self) -> Counter:
+        df = Counter()
+        for tokens in self.doc_tokens:
+            for term in set(tokens):
+                df[term] += 1
+        return df
+
+    def _idf(self, term: str) -> float:
+        n_q = self.df.get(term, 0)
+        return math.log(1 + (self.n_docs - n_q + 0.5) / (n_q + 0.5))
+
+    def retrieve(self, query: str, top_k: int) -> list[Page]:
+        query_terms = tokenize(query)
+        if not query_terms:
+            return []
+
+        scores: list[tuple[float, int]] = []
+        for i, tf_counter in enumerate(self.tf):
+            score = 0.0
+            dl = self.doc_lens[i]
+            norm = self.k1 * (1 - self.b + self.b * dl / max(1e-9, self.avg_len))
+            for term in query_terms:
+                tf = tf_counter.get(term, 0)
+                if tf == 0:
+                    continue
+                idf = self._idf(term)
+                score += idf * (tf * (self.k1 + 1)) / (tf + norm)
+            if score > 0:
+                scores.append((score, i))
+
+        scores.sort(reverse=True)
+        return [self.pages[i] for _, i in scores[:top_k]]
+
+
 class BM25Index:
     def __init__(self, chunks: list[Chunk], k1: float = 1.5, b: float = 0.75):
         self.chunks = chunks
@@ -861,12 +959,20 @@ class BM25Index:
         top_k: int = DEFAULT_TOP_K,
         candidate_k: int | None = None,
         max_chunks_per_url: int = 2,
+        allowed_urls: set[str] | None = None,
     ) -> list[Chunk]:
         if top_k <= 0:
             return []
 
         candidate_limit = candidate_k or max(28, top_k * 10)
-        raw_scored_chunks = self._score_query(query)[:candidate_limit]
+        raw_scored_chunks = self._score_query(query)
+        if allowed_urls is not None:
+            raw_scored_chunks = [
+                (score, chunk_idx)
+                for score, chunk_idx in raw_scored_chunks
+                if self.chunks[chunk_idx].url in allowed_urls
+            ]
+        raw_scored_chunks = raw_scored_chunks[:candidate_limit]
         if not raw_scored_chunks:
             return []
 
@@ -932,9 +1038,17 @@ class BM25Index:
 
 # orignal ragmodel
 class EarlyMilestoneRAG:
-    def __init__(self, index: BM25Index, top_k: int = DEFAULT_TOP_K):
+    def __init__(
+        self,
+        index: BM25Index,
+        page_index: PageIndex,
+        top_k: int = DEFAULT_TOP_K,
+        page_top_k: int = 8,
+    ):
         self.index = index
+        self.page_index = page_index
         self.top_k = top_k
+        self.page_top_k = page_top_k
         self._llm_failure_warned = False
 
     def build_query(self, question: str, retrieved: list[Chunk]) -> str:
@@ -949,7 +1063,9 @@ class EarlyMilestoneRAG:
         )
 
     def answer(self, question: str, use_llm: bool = True) -> tuple[str, list[Chunk]]:
-        retrieved = self.index.retrieve(question, top_k=self.top_k)
+        top_pages = self.page_index.retrieve(question, top_k=self.page_top_k)
+        top_urls = {page.url for page in top_pages}
+        retrieved = self.index.retrieve(question, top_k=self.top_k, allowed_urls=top_urls or None)
         if not retrieved:
             return "UNKNOWN", []
 
@@ -1144,8 +1260,10 @@ def main() -> None:
         chunk_size=args.chunk_size,
         overlap=args.chunk_overlap,
     )
+    pages = load_pages(corpus_path)
     index = BM25Index(chunks)
-    rag = EarlyMilestoneRAG(index=index, top_k=args.top_k)
+    page_index = PageIndex(pages)
+    rag = EarlyMilestoneRAG(index=index, page_index=page_index, top_k=args.top_k)
 
     use_llm = not args.no_llm
 
