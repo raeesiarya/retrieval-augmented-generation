@@ -625,6 +625,7 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
     text_lower = chunk.text.casefold()
     url_lower = chunk.url.casefold()
     retrieval_lower = chunk.retrieval_text.casefold()
+    host_lower = urlparse(chunk.url).netloc.casefold()
 
     bonus = 0.0
 
@@ -640,6 +641,20 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
         if any(role in text_lower for role in ("director", "chair", "manager", "coordinator", "advisor")):
             bonus += 0.7
 
+    is_contact_family = any(path in url_lower for path in ("/contact", "/about/visiting", "/resources/visiting"))
+    is_people_family = any(path in url_lower for path in ("/people/", "/staff/", "/leadership"))
+    is_homepage_family = "people.eecs.berkeley.edu" in host_lower or "/faculty/homepages/" in url_lower
+    is_legacy_report_family = "/pubs/techrpts/" in url_lower or ("www2.eecs.berkeley.edu" in host_lower and "/pubs/" in url_lower)
+    is_publication_family = "/pubs/" in url_lower or "/faculty/publications" in url_lower
+    is_news_family = "/news/" in url_lower or "/category/news/" in url_lower
+    is_book_family = "/book/" in url_lower
+    is_iris_family = "iris.eecs.berkeley.edu" in host_lower
+    is_personal_homepage = "people.eecs.berkeley.edu" in host_lower or "/faculty/homepages/" in url_lower
+    asks_for_department_office = any(
+        cue in question_lower
+        for cue in ("division office", "main office", "office located", "office location", "main office close")
+    )
+
     if "person" in qtypes:
         person_name = extract_person_name_from_question(question)
         if person_name:
@@ -651,24 +666,57 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
                 bonus += 1.4
             elif surname in retrieval_lower:
                 bonus += 0.8
-        if any(path in url_lower for path in ("/people/", "/staff/", "/leadership", "/faculty/", "/homepages/")):
+        if is_people_family:
+            bonus += 1.2
+        if is_homepage_family:
             bonus += 1.0
+        if is_news_family:
+            bonus -= 0.4
 
     if "email" in qtypes or "phone" in qtypes:
         if any(cue in text_lower for cue in ("email", "contact", "phone", "telephone")):
             bonus += 0.9
-        if any(path in url_lower for path in ("/contact", "/staff/", "/leadership", "/people/")):
-            bonus += 1.1
+        if is_contact_family:
+            bonus += 1.3
+        if is_people_family:
+            bonus += 1.0
+        if is_iris_family and any(cue in question_lower for cue in ("helpdesk", "account", "password", "email", "network", "service")):
+            bonus += 1.0
+        if asks_for_department_office and is_personal_homepage:
+            bonus -= 1.2
+        if is_news_family or is_book_family:
+            bonus -= 0.6
 
     if "location" in qtypes:
         if any(cue in text_lower for cue in ("office", "located", "address", "hall", "room", "building")):
             bonus += 0.9
-        if any(path in url_lower for path in ("/contact", "/visiting", "/staff/", "/people/", "/homepages/")):
-            bonus += 1.0
+        if is_contact_family:
+            bonus += 1.3
+        if is_people_family or is_homepage_family:
+            bonus += 0.9
+        if asks_for_department_office and is_personal_homepage:
+            bonus -= 1.0
+        if is_news_family or is_book_family:
+            bonus -= 0.5
 
     if "date" in qtypes or "year" in qtypes:
         if any(path in url_lower for path in ("/news/", "/about/history", "/special-events", "/events/")):
             bonus += 0.7
+
+    if "technical report" in question_lower or "tech report" in question_lower:
+        if is_legacy_report_family:
+            bonus += 2.0
+        elif is_publication_family:
+            bonus += 1.0
+        else:
+            bonus -= 0.5
+
+    if "publication" in question_lower or "paper" in question_lower:
+        if is_publication_family:
+            bonus += 1.0
+
+    if "memorial" in question_lower and "/connect/support/" in url_lower:
+        bonus += 0.8
 
     return bonus
 
