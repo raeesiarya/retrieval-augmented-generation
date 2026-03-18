@@ -28,8 +28,12 @@ DEFAULT_CORPUS_CANDIDATES = (
 SYSTEM_PROMPT = (
     "You are answering factoid questions about UC Berkeley EECS using retrieved context.\n"
     "Rules:\n"
-    "- Return a short answer phrase only (as short as possible).\n"
-    "- Do not explain or add extra text.\n"
+    "- Return only the answer, with no explanation.\n"
+    "- Keep the answer as short as possible.\n"
+    "- For who-questions, return the full person name only.\n"
+    "- For yes/no questions, return exactly Yes or No.\n"
+    "- For how many/how much questions, return only the number unless context clearly includes a required qualifier.\n"
+    "- For date or year questions, return only the date or year.\n"
     '- If the answer is not supported by context, return exactly: "unknown".'
 )
 
@@ -38,6 +42,7 @@ LLM_CHOICE = "meta-llama/llama-3.1-8b-instruct"
 @dataclass(frozen=True)
 class Chunk:
     url: str
+    title: str
     text: str
     retrieval_text: str
 
@@ -299,7 +304,7 @@ def canonicalize_course_code(text: str) -> str:
     if not match:
         return cleaned
     subject, number = match.groups()
-    return f"{subject.upper()} {number.upper()}"
+    return f"{subject.upper()}{number.upper()}"
 
 
 def canonicalize_degree_text(text: str) -> str:
@@ -770,6 +775,7 @@ def load_chunks(
                 chunks.append(
                     Chunk(
                         url=url,
+                        title=title,
                         text=text,
                         retrieval_text=build_retrieval_text(url, title, text),
                     )
@@ -780,6 +786,7 @@ def load_chunks(
                 chunks.append(
                     Chunk(
                         url=url,
+                        title=title,
                         text=piece,
                         retrieval_text=build_retrieval_text(url, title, piece),
                     )
@@ -939,8 +946,10 @@ class EarlyMilestoneRAG:
     def build_query(self, question: str, retrieved: list[Chunk]) -> str:
         context_blocks = []
         for i, chunk in enumerate(retrieved, start=1):
-            context_blocks.append(f"[{i}] URL: {chunk.url}\n{chunk.text}")
-        context = "\n\n".join(context_blocks)
+            context_blocks.append(
+                f"[{i}] Page: {chunk.title}\nURL: {chunk.url}\n{chunk.text}"
+            )
+        context = "\n---\n".join(context_blocks)
         return (
             f"context:\n{context}\n\n"
             f"question: {question}\n\n"
@@ -950,7 +959,7 @@ class EarlyMilestoneRAG:
     def answer(self, question: str, use_llm: bool = True) -> tuple[str, list[Chunk]]:
         retrieved = self.index.retrieve(question, top_k=self.top_k)
         if not retrieved:
-            return "UNKNOWN", []
+            return "unknown", []
 
         if not use_llm:
             return self.extractive_fallback(question, retrieved), retrieved
@@ -1049,7 +1058,7 @@ def run_batch(
     predictions: list[str] = []
     for q in questions:
         if not q:
-            predictions.append("UNKNOWN")
+            predictions.append("unknown")
             continue
         answer, _ = rag.answer(q, use_llm=use_llm)
         predictions.append(answer)
@@ -1098,9 +1107,9 @@ def load_questions(questions_path: Path) -> list[str]:
                 questions.append(item.strip())
             elif isinstance(item, dict):
                 question = str(item.get("question", "")).strip()
-                questions.append(question if question else "UNKNOWN")
+                questions.append(question if question else "unknown")
             else:
-                questions.append("UNKNOWN")
+                questions.append("unknown")
         return questions
 
     return [
