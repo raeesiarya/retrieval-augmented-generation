@@ -160,6 +160,31 @@ STOP_WORDS = {
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 COURSE_CANONICAL_RE = re.compile(r"^([A-Za-z]{2,8})\s*-?\s*(\d{1,3}[A-Z]?)$")
 RANK_RE = re.compile(r"^#\s+(\d+)$")
+ANSWER_PREFIX_RE = re.compile(
+    r"^(?:answer|short answer|final answer|response)\s*[:\-]\s*",
+    re.IGNORECASE,
+)
+LEADING_PHRASE_RE = re.compile(
+    r"^(?:the answer is|it is|it's|this is|the page says)\s+",
+    re.IGNORECASE,
+)
+MARKDOWN_RE = re.compile(r"[*_`#>]+")
+UNKNOWN_LIKE_RE = re.compile(
+    r"^(?:unknown|not (?:available|listed|provided|specified|mentioned|supported)|"
+    r"n/?a|none|no answer)$",
+    re.IGNORECASE,
+)
+ROLE_TERMS = (
+    "advisor",
+    "chair",
+    "coordinator",
+    "dean",
+    "director",
+    "manager",
+    "professor",
+)
+
+
 def tokenize(text: str) -> list[str]:
     return TOKEN_RE.findall(text.lower())
 
@@ -289,12 +314,67 @@ def get_focus_ngrams(question: str, n: int = 2) -> set[str]:
     return {" ".join(tokens[i : i + n]) for i in range(len(tokens) - n + 1)}
 
 
+def build_query_variants(question: str) -> list[tuple[str, float]]:
+    variants: list[tuple[str, float]] = []
+    seen: set[str] = set()
+    lowered = question.casefold()
+    focus_tokens = [token for token in tokenize(question) if token not in STOP_WORDS]
+    qtypes = question_types(question)
+    person_name = extract_person_name_from_question(question)
+
+    def add(variant: str, weight: float) -> None:
+        cleaned = normalize_space(variant)
+        key = cleaned.casefold()
+        if not cleaned or key in seen:
+            return
+        seen.add(key)
+        variants.append((cleaned, weight))
+
+    add(question, 1.5)
+    if len(focus_tokens) >= 2:
+        add(" ".join(focus_tokens), 1.15)
+
+    role_terms = [role for role in ROLE_TERMS if role in lowered]
+    if role_terms and focus_tokens:
+        add(" ".join(role_terms + focus_tokens), 1.0)
+
+    if person_name:
+        add(person_name, 1.0)
+
+    if "person" in qtypes:
+        add(f"people staff leadership {' '.join(focus_tokens)}", 0.95)
+        if role_terms:
+            add(f"leadership {' '.join(role_terms)} {' '.join(focus_tokens)}", 0.95)
+    if "email" in qtypes:
+        add(f"email contact {' '.join(focus_tokens)}", 0.95)
+        if person_name:
+            add(f"{person_name} email", 0.95)
+    if "phone" in qtypes:
+        add(f"phone contact {' '.join(focus_tokens)}", 0.95)
+    if "location" in qtypes:
+        add(f"office location room address {' '.join(focus_tokens)}", 0.95)
+    if "course" in qtypes:
+        add(f"course recommended {' '.join(focus_tokens)}", 0.9)
+    if "date" in qtypes or "year" in qtypes:
+        if any(cue in lowered for cue in ("archive", "colloquium", "bears", "special events", "rising stars")):
+            add(f"archive {' '.join(focus_tokens)}", 0.95)
+        add(f"date year {' '.join(focus_tokens)}", 0.85)
+
+    return variants[:6]
+
+
 def cleanup_answer_text(text: str) -> str:
     text = text.replace("\u2013", "-").replace("\u2014", "-")
+    text = MARKDOWN_RE.sub(" ", text)
     cleaned = normalize_space(text)
+    cleaned = ANSWER_PREFIX_RE.sub("", cleaned)
+    cleaned = LEADING_PHRASE_RE.sub("", cleaned)
+    cleaned = cleaned.strip("\"'[]() ")
     if "@" in cleaned:
         cleaned = re.sub(r"\s*@\s*", "@", cleaned)
         cleaned = re.sub(r"\s*\.\s*", ".", cleaned)
+    cleaned = ANSWER_PREFIX_RE.sub("", cleaned)
+    cleaned = LEADING_PHRASE_RE.sub("", cleaned)
     return cleaned.strip(" ,;:.")
 
 
@@ -558,6 +638,8 @@ def postprocess_answer(question: str, answer: str) -> str:
     cleaned = cleanup_answer_text(answer)
     if not cleaned:
         return "unknown"
+    if UNKNOWN_LIKE_RE.fullmatch(cleaned):
+        return "unknown"
 
     qtypes = question_types(question)
     lowered_question = question.casefold()
@@ -628,6 +710,7 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
     focus_bigrams = get_focus_ngrams(question, n=2)
     question_lower = question.casefold()
     text_lower = chunk.text.casefold()
+    title_lower = chunk.title.casefold()
     url_lower = chunk.url.casefold()
     retrieval_lower = chunk.retrieval_text.casefold()
     host_lower = urlparse(chunk.url).netloc.casefold()
@@ -642,9 +725,15 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
     if matched_bigrams:
         bonus += 0.35 * min(matched_bigrams, 2)
 
-    if any(role in question_lower for role in ("director", "chair", "manager", "coordinator", "advisor")):
-        if any(role in text_lower for role in ("director", "chair", "manager", "coordinator", "advisor")):
+    if any(role in question_lower for role in ROLE_TERMS):
+        if any(role in text_lower for role in ROLE_TERMS):
             bonus += 0.7
+        if any(role in title_lower for role in ROLE_TERMS):
+            bonus += 0.4
+
+    title_overlap = len(set(tokenize(chunk.title)) & focus_terms)
+    if title_overlap:
+        bonus += 0.35 * min(title_overlap, 3)
 
     is_contact_family = any(path in url_lower for path in ("/contact", "/about/visiting", "/resources/visiting"))
     is_people_family = any(path in url_lower for path in ("/people/", "/staff/", "/leadership"))
@@ -671,6 +760,8 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
                 bonus += 1.4
             elif surname in retrieval_lower:
                 bonus += 0.8
+        if is_plausible_person_name(chunk.title):
+            bonus += 0.6
         if is_people_family:
             bonus += 1.2
         if is_homepage_family:
@@ -681,6 +772,10 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
     if "email" in qtypes or "phone" in qtypes:
         if any(cue in text_lower for cue in ("email", "contact", "phone", "telephone")):
             bonus += 0.9
+        if "email" in qtypes and EMAIL_RE.search(chunk.text):
+            bonus += 1.0
+        if "phone" in qtypes and PHONE_RE.search(chunk.text):
+            bonus += 1.0
         if is_contact_family:
             bonus += 1.3
         if is_people_family:
@@ -695,6 +790,10 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
     if "location" in qtypes:
         if any(cue in text_lower for cue in ("office", "located", "address", "hall", "room", "building")):
             bonus += 0.9
+        if ROOM_RE.search(chunk.text):
+            bonus += 0.8
+        elif BUILDING_RE.search(chunk.text):
+            bonus += 0.6
         if is_contact_family:
             bonus += 1.3
         if is_people_family or is_homepage_family:
@@ -707,6 +806,10 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
     if "date" in qtypes or "year" in qtypes:
         if any(path in url_lower for path in ("/news/", "/about/history", "/special-events", "/events/")):
             bonus += 0.7
+        if "archive" in question_lower and "archive" in retrieval_lower:
+            bonus += 0.7
+        if "colloquium" in question_lower and "/research/colloquium/" in url_lower:
+            bonus += 1.0
 
     if "technical report" in question_lower or "tech report" in question_lower:
         if is_legacy_report_family:
@@ -720,13 +823,16 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
         if is_publication_family:
             bonus += 1.0
 
+    if "www2.eecs.berkeley.edu" in host_lower and overlap >= 2:
+        bonus += 0.6
+
     if "memorial" in question_lower and "/connect/support/" in url_lower:
         bonus += 0.8
 
     return bonus
 
 # chunking
-DEFAULT_TOP_K = 4
+DEFAULT_TOP_K = 5
 DEFAULT_CHUNK_SIZE = 140
 DEFAULT_CHUNK_OVERLAP = 30
 def chunk_text(text: str, chunk_size: int, overlap: int) -> Iterable[str]:
@@ -871,14 +977,23 @@ class BM25Index:
         if top_k <= 0:
             return []
 
-        candidate_limit = candidate_k or max(28, top_k * 10)
-        raw_scored_chunks = self._score_query(query)[:candidate_limit]
-        if not raw_scored_chunks:
+        candidate_limit = candidate_k or max(32, top_k * 12)
+        base_scored_chunks = self._score_query(query)[:candidate_limit]
+        if not base_scored_chunks:
             return []
 
+        base_indices = {chunk_idx for _, chunk_idx in base_scored_chunks}
+        fused_bonus_by_idx: Counter[int] = Counter()
+        for variant, weight in build_query_variants(query)[1:]:
+            for rank, (_, chunk_idx) in enumerate(self._score_query(variant)[:candidate_limit], start=1):
+                if chunk_idx not in base_indices:
+                    continue
+                fused_bonus_by_idx[chunk_idx] += weight / (10.0 + rank)
+
         reranked_chunks: list[tuple[float, float, int]] = []
-        for score, chunk_idx in raw_scored_chunks:
-            adjusted_score = score + retrieval_bonus(query, self.chunks[chunk_idx])
+        for score, chunk_idx in base_scored_chunks:
+            fusion_bonus = fused_bonus_by_idx.get(chunk_idx, 0.0)
+            adjusted_score = score + retrieval_bonus(query, self.chunks[chunk_idx]) + fusion_bonus
             reranked_chunks.append((adjusted_score, score, chunk_idx))
         reranked_chunks.sort(reverse=True)
 
