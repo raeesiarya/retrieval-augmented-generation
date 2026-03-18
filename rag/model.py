@@ -64,12 +64,6 @@ TIME_RE = re.compile(
     r"\b(?:\d{1,2}(?::\d{2})?\s?(?:a\.?m\.?|p\.?m\.?)|noon|midnight)\b",
     re.IGNORECASE,
 )
-TIME_RANGE_RE = re.compile(
-    r"(?P<start>\b\d{1,2}(?::\d{2})?\s?(?:a\.?m\.?|p\.?m\.?)\b)"
-    r"\s*(?:-|to|until|through|–)\s*"
-    r"(?P<end>\b\d{1,2}(?::\d{2})?\s?(?:a\.?m\.?|p\.?m\.?)\b)",
-    re.IGNORECASE,
-)
 DATE_RE = re.compile(
     r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
     r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
@@ -117,20 +111,11 @@ STRUCTURAL_SPLIT_RE = re.compile(
     r"|(?=\b(?:\+?1[\s-]*)?(?:\(\d{3}\)|\d{3})[\s-]*\d{3}[\s-]*\d{4}\b)"
 )
 NAME_BLOCKLIST = {
-    "advisor",
-    "chair",
-    "coordinator",
-    "dean",
     "office",
-    "officer",
-    "director",
-    "division",
-    "manager",
     "staff",
     "student",
     "students",
     "course",
-    "professor",
     "support",
     "department",
     "division",
@@ -196,13 +181,7 @@ ROLE_TERMS = (
     "dean",
     "director",
     "manager",
-    "officer",
     "professor",
-)
-PERSON_TITLE_PREFIX_RE = re.compile(
-    r"^(?:(?:assistant|associate|adjunct|emeritus)\s+)?"
-    r"(?:professor|prof\.?|dr\.?|mr\.?|mrs\.?|ms\.?)\s+",
-    re.IGNORECASE,
 )
 
 
@@ -427,70 +406,6 @@ def canonicalize_rank(text: str) -> str:
     if not match:
         return cleaned
     return f"#{match.group(1)}"
-
-
-def is_role_holder_question(question: str) -> bool:
-    lowered = question.casefold()
-    return any(role in lowered for role in ROLE_TERMS) or lowered.startswith("who is the ")
-
-
-def extract_person_name_from_answer(question: str, answer: str) -> str | None:
-    if not is_role_holder_question(question):
-        return None
-
-    cleaned = PERSON_TITLE_PREFIX_RE.sub("", cleanup_answer_text(answer))
-    question_name = extract_person_name_from_question(question)
-    question_name_key = normalize_space(question_name).casefold() if question_name else None
-
-    trailing_tokens: list[str] = []
-    for token in reversed(cleaned.split()):
-        normalized = token.strip(",;:.()[]\"'")
-        if not re.fullmatch(r"[A-Z][A-Za-z.-]+", normalized):
-            break
-        if normalized.casefold() in NAME_BLOCKLIST:
-            break
-        trailing_tokens.insert(0, normalized)
-        if len(trailing_tokens) >= 4:
-            break
-    if len(trailing_tokens) >= 2:
-        tail_candidate = " ".join(trailing_tokens)
-        if is_plausible_person_name(tail_candidate):
-            if not question_name_key or normalize_space(tail_candidate).casefold() != question_name_key:
-                return tail_candidate
-
-    candidates: list[str] = []
-    for match in NAME_RE.finditer(cleaned):
-        candidate = cleanup_answer_text(match.group(0))
-        if not is_plausible_person_name(candidate):
-            continue
-        if question_name_key and normalize_space(candidate).casefold() == question_name_key:
-            continue
-        candidates.append(candidate)
-
-    if not candidates:
-        return None
-
-    candidates.sort(key=lambda name: (-len(name.split()), cleaned.find(name)))
-    return candidates[0]
-
-
-def extract_time_answer(question: str, answer: str) -> str | None:
-    cleaned = cleanup_answer_text(answer)
-    lowered = question.casefold()
-
-    if "close" in lowered or "end" in lowered:
-        match = TIME_RANGE_RE.search(cleaned)
-        if match:
-            return cleanup_answer_text(match.group("end"))
-    if "open" in lowered or "start" in lowered:
-        match = TIME_RANGE_RE.search(cleaned)
-        if match:
-            return cleanup_answer_text(match.group("start"))
-
-    match = TIME_RE.search(cleaned)
-    if match:
-        return cleanup_answer_text(match.group(0))
-    return None
 
 
 def extract_person_name_from_question(question: str) -> str | None:
@@ -729,11 +644,6 @@ def postprocess_answer(question: str, answer: str) -> str:
     qtypes = question_types(question)
     lowered_question = question.casefold()
 
-    if "time" in qtypes:
-        extracted_time = extract_time_answer(question, cleaned)
-        if extracted_time:
-            return extracted_time
-
     for regex in (
         EMAIL_RE if "email" in qtypes else None,
         PHONE_RE if "phone" in qtypes else None,
@@ -781,11 +691,6 @@ def postprocess_answer(question: str, answer: str) -> str:
         normalized = cleaned.casefold().replace(" ", "")
         if normalized in {"phdonly", "phd.only", "ph.donly", "ph.d.only"}:
             return "PhD. only"
-
-    if "person" in qtypes:
-        extracted_name = extract_person_name_from_answer(question, cleaned)
-        if extracted_name:
-            return extracted_name
 
     if "listed first" in lowered_question and cleaned.startswith("Recipients "):
         return cleanup_answer_text(cleaned.removeprefix("Recipients "))
