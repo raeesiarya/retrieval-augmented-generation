@@ -284,48 +284,6 @@ def get_focus_ngrams(question: str, n: int = 2) -> set[str]:
     return {" ".join(tokens[i : i + n]) for i in range(len(tokens) - n + 1)}
 
 
-def build_retrieval_queries(question: str) -> list[tuple[str, float]]:
-    lowered = question.casefold()
-    qtypes = question_types(question)
-    queries: list[tuple[str, float]] = [(question, 1.0)]
-    expansion_terms: list[str] = []
-
-    if "person" in qtypes:
-        expansion_terms.extend(["people", "staff", "leadership", "faculty", "homepage", "profile"])
-    if "email" in qtypes or "phone" in qtypes:
-        expansion_terms.extend(["contact", "directory", "staff", "office"])
-    if "location" in qtypes:
-        expansion_terms.extend(["contact", "office", "address", "room", "hall", "visiting", "location"])
-    if "date" in qtypes or "year" in qtypes:
-        expansion_terms.extend(["news", "events", "history", "date"])
-    if "time" in qtypes:
-        expansion_terms.extend(["hours", "schedule", "office"])
-    if "degree" in qtypes:
-        expansion_terms.extend(["degree", "program", "graduate", "undergraduate"])
-    if "course" in qtypes:
-        expansion_terms.extend(["course", "coursework", "teaching"])
-    if "university" in qtypes:
-        expansion_terms.extend(["university"])
-    if "professorship" in qtypes:
-        expansion_terms.extend(["professorship", "faculty"])
-    if "deadline" in lowered or "application period" in lowered:
-        expansion_terms.extend(["deadline", "application"])
-    if "technical report" in lowered or "tech report" in lowered:
-        expansion_terms.extend(["technical", "tech", "report", "pdf", "pubs"])
-    if "memorial" in lowered:
-        expansion_terms.extend(["memorial", "support"])
-
-    if expansion_terms:
-        deduped = list(dict.fromkeys(expansion_terms))
-        queries.append((normalize_space(f"{question} {' '.join(deduped)}"), 0.35))
-
-    person_name = extract_person_name_from_question(question)
-    if person_name and "person" in qtypes:
-        queries.append((f"{person_name} homepage profile faculty", 0.2))
-
-    return queries
-
-
 def cleanup_answer_text(text: str) -> str:
     text = text.replace("\u2013", "-").replace("\u2014", "-")
     cleaned = normalize_space(text)
@@ -860,15 +818,7 @@ class BM25Index:
             return []
 
         candidate_limit = candidate_k or max(28, top_k * 10)
-        combined_scores: dict[int, float] = {}
-        for retrieval_query, weight in build_retrieval_queries(query):
-            for score, chunk_idx in self._score_query(retrieval_query)[:candidate_limit]:
-                combined_scores[chunk_idx] = combined_scores.get(chunk_idx, 0.0) + weight * score
-
-        raw_scored_chunks = sorted(
-            ((score, chunk_idx) for chunk_idx, score in combined_scores.items() if score > 0),
-            reverse=True,
-        )[:candidate_limit]
+        raw_scored_chunks = self._score_query(query)[:candidate_limit]
         if not raw_scored_chunks:
             return []
 
