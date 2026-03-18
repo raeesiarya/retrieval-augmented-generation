@@ -323,6 +323,100 @@ def canonicalize_rank(text: str) -> str:
     return f"#{match.group(1)}"
 
 
+def staff_area_bonus(question_lower: str, url_lower: str) -> float:
+    area_hints: list[tuple[tuple[str, ...], tuple[str, ...], float]] = [
+        (
+            ("payroll", "benefits", "ase", "visiting scholar", "postdoc", "visitor coordinator", "hr"),
+            ("/people/staff/hr-staff",),
+            1.2,
+        ),
+        (
+            (
+                "phd funding",
+                "graduate affairs",
+                "undergraduate affairs",
+                "phd advisor",
+                "meng",
+                "admissions",
+                "advising",
+                "scholars",
+                "gsi",
+                "student affairs",
+                "course manager",
+            ),
+            ("/people/staff/student-affairs",),
+            1.2,
+        ),
+        (
+            ("purchasing", "reimbursements", "fund balances", "financial", "accounting", "faculty funds"),
+            ("/people/staff/financial-staff",),
+            1.2,
+        ),
+        (
+            ("keys", "card keys", "building manager", "copiers", "printers", "facilities"),
+            ("/people/staff/facilities-staff",),
+            1.2,
+        ),
+        (
+            ("online directory", "a/v", "av work", "instructional support group", "it staff"),
+            ("/people/staff/it-staff",),
+            1.2,
+        ),
+        (
+            ("course support", "instructional computing"),
+            ("/people/staff/course-support-staff",),
+            1.2,
+        ),
+        (
+            ("chairs office", "chairs office manager", "assistant to the eecs chairs", "ee and cs chairs"),
+            ("/people/staff/faculty-support-staff",),
+            1.2,
+        ),
+        (
+            ("external relations", "research symposium", "bears-admin"),
+            ("/people/staff/external-relations-staff",),
+            1.2,
+        ),
+    ]
+
+    bonus = 0.0
+    for terms, paths, value in area_hints:
+        if any(term in question_lower for term in terms) and any(path in url_lower for path in paths):
+            bonus += value
+    return bonus
+
+
+def is_staff_directory_question(question_lower: str) -> bool:
+    cues = (
+        "payroll",
+        "benefits",
+        "visitor coordinator",
+        "postdoc",
+        "admissions",
+        "advising",
+        "funding",
+        "student affairs",
+        "financial",
+        "accounting",
+        "reimbursements",
+        "fund balances",
+        "keys",
+        "card keys",
+        "building manager",
+        "copiers",
+        "printers",
+        "online directory",
+        "a/v",
+        "av work",
+        "instructional computing",
+        "course support",
+        "chairs office",
+        "research symposium",
+        "external relations",
+    )
+    return any(cue in question_lower for cue in cues)
+
+
 def extract_person_name_from_question(question: str) -> str | None:
     matches = list(NAME_RE.finditer(question))
     if not matches:
@@ -717,6 +811,22 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
 
     if "memorial" in question_lower and "/connect/support/" in url_lower:
         bonus += 0.8
+
+    if "/people/staff/" in url_lower:
+        bonus += staff_area_bonus(question_lower, url_lower)
+        if "online directory" in question_lower and "/people/staff/it-staff" in url_lower:
+            bonus += 1.0
+        if "a/v" in question_lower or "av work" in question_lower:
+            if "/people/staff/it-staff" in url_lower:
+                bonus += 1.0
+        if "course support manager" in question_lower and "/people/staff/course-support-staff" in url_lower:
+            bonus += 1.0
+        if "research symposium" in question_lower and "/people/staff/external-relations-staff" in url_lower:
+            bonus += 1.0
+
+    if is_staff_directory_question(question_lower):
+        if ("/resources/" in url_lower or "/faq" in url_lower or is_iris_family) and "/people/staff/" not in url_lower and not is_contact_family:
+            bonus -= 0.8
 
     return bonus
 
