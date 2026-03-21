@@ -212,6 +212,42 @@ UNKNOWN_LIKE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# def normalize_digits_loose(text: str) -> str:
+#     return re.sub(r"(?<=\d)[, ](?=\d)", "", text)
+#
+#
+# def quick_keyword_url_boost(question: str, url: str) -> float:
+#     q = question.casefold()
+#     u = url.casefold()
+#     score = 0.0
+#     if "faculty" in q and "/faculty/" in u:
+#         score += 0.8
+#     if "course" in q and "/courses/" in u:
+#         score += 0.8
+#     if "award" in q and "/awards/" in u:
+#         score += 0.8
+#     return score
+#
+#
+# def extract_numbers_only(span: str) -> list[str]:
+#     return re.findall(r"\b\d+(?:\.\d+)?\b", span)
+#
+#
+#
+# def yesno_from_title(title: str) -> str | None:
+#     t = title.casefold()
+#     if "requirements" in t:
+#         return "Yes"
+#     if "not allowed" in t:
+#         return "No"
+#     return None
+#
+#
+# def debug_dump_candidates(candidates: dict[str, tuple[float, str]]) -> None:
+#     # for _, (score, cand) in sorted(candidates.items(), key=lambda kv: kv[1][0], reverse=True)[:10]:
+#     #     print(f"{score:.2f} | {cand}")
+#     pass
+
 
 # processing
 def tokenize(text: str) -> list[str]:
@@ -292,10 +328,17 @@ def question_types(question: str) -> set[str]:
     lowered = question.casefold()
     qtypes: set[str] = set()
 
+    # old thought:
+    # if "advisor" in lowered: qtypes.add("person")
+    # too narrow, kept broader role matching below.
+
     if "email" in lowered or "e-mail" in lowered:
         qtypes.add("email")
     if "phone" in lowered or "telephone" in lowered:
         qtypes.add("phone")
+
+    # add(question.replace("?", ""), 1.2)
+
     if "course" in lowered:
         qtypes.add("course")
     if "university" in lowered:
@@ -557,7 +600,7 @@ def add_candidate(
     if previous is None or score > previous[0]:
         candidates[key] = (score, candidate)
 
-
+# regretting hardcoding this
 def extract_type_candidates(qtypes: set[str], span: str) -> list[tuple[str, float, str]]:
     candidates: list[tuple[str, float, str]] = []
 
@@ -736,6 +779,10 @@ def postprocess_answer(question: str, answer: str) -> str:
         return "unknown"
     if UNKNOWN_LIKE_RE.fullmatch(cleaned):
         return "unknown"
+    
+    # if len(cleaned.split()) > 10:
+    #     return "unknown"
+
 
     qtypes = question_types(question)
     lowered_question = question.casefold()
@@ -1211,6 +1258,9 @@ class BM25Index:
         query_terms = tokenize(query)
         if not query_terms:
             return []
+        
+        # query_terms = list(dict.fromkeys(query_terms))
+
 
         scores: list[tuple[float, int]] = []
         for i, tf_counter in enumerate(self.tf):
@@ -1447,6 +1497,9 @@ class EarlyMilestoneRAG:
         qtypes = question_types(question)
         candidates: dict[str, tuple[float, str]] = {}
         typed_candidates: dict[str, tuple[float, str]] = {}
+
+        # kept `typed_candidates` because it reduced noisy span picks.
+
 
         for source_rank, chunk in enumerate(retrieved):
             if not chunk.text:
