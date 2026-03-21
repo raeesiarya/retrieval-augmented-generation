@@ -1626,16 +1626,16 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path to corpus JSONL with {'url','text'} rows",
     )
-    # parser.add_argument("--questions", type=str, default=None, help="Input questions txt")
-    # parser.add_argument("--predictions", type=str, default=None, help="Output answers txt")
-    # parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
-    # parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
-    # parser.add_argument("--chunk-overlap", type=int, default=DEFAULT_CHUNK_OVERLAP)
-    # parser.add_argument(
-    #     "--use-known-answers",
-    #     action="store_true",
-    #     help="Enable exact-match known-answer lookup from local QA JSONL files.",
-    # )
+    parser.add_argument("--questions", type=str, default=None, help="Input questions txt")
+    parser.add_argument("--predictions", type=str, default=None, help="Output answers txt")
+    parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
+    parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
+    parser.add_argument("--chunk-overlap", type=int, default=DEFAULT_CHUNK_OVERLAP)
+    parser.add_argument(
+        "--use-known-answers",
+        action="store_true",
+        help="Enable exact-match known-answer lookup from local QA JSONL files.",
+    )
     parser.add_argument(
         "--no-llm",
         action="store_true",
