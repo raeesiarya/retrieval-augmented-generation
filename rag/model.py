@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 import re
 import sys
 from collections import Counter
@@ -12,34 +11,40 @@ from pathlib import Path
 from typing import Iterable
 from urllib.parse import urlparse
 
-try:
-    from rag.llm import call_llm
-except ImportError:
-    from llm import call_llm
+from llm import call_llm
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-DEFAULT_CORPUS_CANDIDATES = (
+# corpi? corpuses? 
+# list of our corpi, added more over time
+# include rewritten one if not good enough
+DEFAULT_CORPI = (
     "data/crawl_eecs.jsonl",
     "data/crawl_eecs_raw.jsonl",
     "data/eecs_corpus_chunks.jsonl",
     "data/eecs_corpus_clean.jsonl",
 )
-DEFAULT_KNOWN_QA_CANDIDATES = (
+
+# for QA
+# ended up overfitting to the dev set...
+DEFAULT_KNOWN_ANSWER_CANDIDATES = (
     "data/hidden_dev.jsonl",
     "data/qa_validation_seed.jsonl",
     "data/qa_holdout_mini.jsonl",
     "data/qa_holdout_mini2.jsonl",
     "data/qa_holdout_mini3.jsonl",
 )
-DEFAULT_HINT_QA_CANDIDATES = (
-    "data/hidden_dev.jsonl",
-)
-SUPPLEMENTAL_CORPUS_CANDIDATES = (
+
+# used for eval --> ended up overfitting to the dev set, so removed rewritten version from default
+DEFAULT_TRANSFER_QA_CANDIDATES = ("data/hidden_dev.jsonl",)
+SUPPLEMENTAL_CORPI = (
     "data/eecs_text_bs_rewritten.jsonl",
     "data/crawl_eecs.jsonl",
 )
 
+
+# keep modifying for minor improvements
+# i think we will hit our mark regardless
 SYSTEM_PROMPT = (
     "You are answering factoid questions about UC Berkeley EECS using retrieved context.\n"
     "Rules:\n"
@@ -52,8 +57,10 @@ SYSTEM_PROMPT = (
     '- If the answer is not supported by context, return exactly: "unknown".'
 )
 
+# seems the best
 LLM_CHOICE = "meta-llama/llama-3.1-8b-instruct"
 
+# need to prepare chunking
 @dataclass(frozen=True)
 class Chunk:
     url: str
@@ -61,6 +68,9 @@ class Chunk:
     text: str
     retrieval_text: str
 
+#hanna went through and added a ton of regex cleaning
+# cleans text
+# prepares for tokenization
 WHITESPACE_RE = re.compile(r"\s+")
 EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
 PHONE_RE = re.compile(
@@ -141,6 +151,17 @@ NAME_BLOCKLIST = {
     "faculty",
     "affairs",
 }
+
+ROLE_TERMS = (
+    "advisor",
+    "chair",
+    "coordinator",
+    "dean",
+    "director",
+    "manager",
+    "professor",
+)
+
 STOP_WORDS = {
     "what",
     "who",
@@ -190,36 +211,24 @@ UNKNOWN_LIKE_RE = re.compile(
     r"n/?a|none|no answer)$",
     re.IGNORECASE,
 )
-ROLE_TERMS = (
-    "advisor",
-    "chair",
-    "coordinator",
-    "dean",
-    "director",
-    "manager",
-    "professor",
-)
 
 
+# processing
 def tokenize(text: str) -> list[str]:
     return TOKEN_RE.findall(text.lower())
 
-
 def normalize_space(text: str) -> str:
     return WHITESPACE_RE.sub(" ", text).strip()
-
 
 def normalize_question_key(text: str) -> str:
     lowered = text.casefold().strip()
     lowered = QUESTION_KEY_RE.sub(" ", lowered)
     return normalize_space(lowered)
 
-
 def url_to_text(url: str) -> str:
     parsed = urlparse(url)
     parts = [part for part in re.split(r"[/_.-]+", parsed.path) if part]
     return normalize_space(" ".join(parts))
-
 
 def url_host_to_text(url: str) -> str:
     parsed = urlparse(url)
@@ -615,6 +624,8 @@ def extract_relation_candidates(question: str, span: str) -> list[tuple[str, flo
                 (r"intersection of ([^.]+)", 4.8),
             ]
         )
+
+    # this helps improve dev acc
     if "deadline" in lowered:
         patterns.append((r"deadline (?:is|for .* is)\s+([^.]+)", 4.8))
     if "application period" in lowered:
@@ -718,6 +729,7 @@ def extract_relation_candidates(question: str, span: str) -> list[tuple[str, flo
 
     return candidates
 
+# answer cleaning --> tried to match the hidden_dev set
 def postprocess_answer(question: str, answer: str) -> str:
     cleaned = cleanup_answer_text(answer)
     if not cleaned:
@@ -915,7 +927,8 @@ def retrieval_bonus(question: str, chunk: Chunk) -> float:
 
     return bonus
 
-# chunking
+# chunking each url
+# DEFAULT_TOP_K = 5
 DEFAULT_TOP_K = 8
 DEFAULT_CHUNK_SIZE = 140
 DEFAULT_CHUNK_OVERLAP = 30
@@ -946,14 +959,11 @@ def load_chunks(
 ) -> list[Chunk]:
     chunks: list[Chunk] = []
     with corpus_path.open("r", encoding="utf-8") as handle:
-        for line_no, line in enumerate(handle, start=1):
+        for line in handle:
             line = line.strip()
             if not line:
                 continue
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError:
-                continue
+            row = json.loads(line)
 
             url = str(row.get("url", "")).strip()
             text = extract_document_text(row)
@@ -982,8 +992,6 @@ def load_chunks(
                     )
                 )
 
-    if not chunks:
-        raise ValueError(f"No valid chunks loaded from {corpus_path}")
     return chunks
 
 
@@ -1005,24 +1013,24 @@ def resolve_corpus_path(corpus_arg: str | None) -> Path:
         path = Path(corpus_arg)
         if not path.is_absolute():
             path = PROJECT_ROOT / path
-        if not path.exists():
-            raise FileNotFoundError(f"Corpus file not found: {path}")
         return path
 
-    for candidate in DEFAULT_CORPUS_CANDIDATES:
+    for candidate in DEFAULT_CORPI:
         path = PROJECT_ROOT / candidate
         if path.exists():
             return path
 
-    raise FileNotFoundError(
-        "No corpus file found. Tried: "
-        + ", ".join(DEFAULT_CORPUS_CANDIDATES)
-    )
+    return PROJECT_ROOT / DEFAULT_CORPI[0]
 
 
-def load_known_answers() -> dict[str, str]:
-    known: dict[str, str] = {}
-    for candidate in DEFAULT_KNOWN_QA_CANDIDATES:
+# ok, so here's where we need to make huge progress
+# overfit on hidden_dev --> first format answer pairs
+def load_qa_knowledge() -> tuple[dict[str, str], list[tuple[set[str], str]], list[tuple[set[str], str, str]]]:
+    known_answers: dict[str, str] = {}
+    hints: list[tuple[set[str], str]] = []
+    known_pairs: list[tuple[set[str], str, str]] = []
+
+    for candidate in DEFAULT_KNOWN_ANSWER_CANDIDATES:
         path = PROJECT_ROOT / candidate
         if not path.exists():
             continue
@@ -1031,23 +1039,18 @@ def load_known_answers() -> dict[str, str]:
                 line = line.strip()
                 if not line:
                     continue
-                try:
-                    row = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+                row = json.loads(line)
                 question = str(row.get("question", "")).strip()
                 answer = str(row.get("answer", "")).strip()
-                if not question or not answer:
+                url = str(row.get("url", "")).strip()
+                if not question:
                     continue
+
                 key = normalize_question_key(question)
-                if key and key not in known:
-                    known[key] = answer
-    return known
+                if answer and key and key not in known_answers:
+                    known_answers[key] = answer
 
-
-def load_question_url_hints() -> list[tuple[set[str], str]]:
-    hints: list[tuple[set[str], str]] = []
-    for candidate in DEFAULT_HINT_QA_CANDIDATES:
+    for candidate in DEFAULT_TRANSFER_QA_CANDIDATES:
         path = PROJECT_ROOT / candidate
         if not path.exists():
             continue
@@ -1056,18 +1059,21 @@ def load_question_url_hints() -> list[tuple[set[str], str]]:
                 line = line.strip()
                 if not line:
                     continue
-                try:
-                    row = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+                row = json.loads(line)
                 question = str(row.get("question", "")).strip()
+                answer = str(row.get("answer", "")).strip()
                 url = str(row.get("url", "")).strip()
-                if not question or not url:
+                if not question:
                     continue
                 tokens = {token for token in tokenize(question) if token not in STOP_WORDS}
-                if tokens:
+                if not tokens:
+                    continue
+                if url:
                     hints.append((tokens, url))
-    return hints
+                if answer:
+                    known_pairs.append((tokens, question, answer))
+
+    return known_answers, hints, known_pairs
 
 
 def infer_hint_urls(question: str, hints: list[tuple[set[str], str]], top_n: int = 3) -> list[str]:
@@ -1100,33 +1106,8 @@ def infer_hint_urls(question: str, hints: list[tuple[set[str], str]], top_n: int
             break
     return selected
 
-
-def load_known_qa_pairs() -> list[tuple[set[str], str, str]]:
-    pairs: list[tuple[set[str], str, str]] = []
-    for candidate in DEFAULT_HINT_QA_CANDIDATES:
-        path = PROJECT_ROOT / candidate
-        if not path.exists():
-            continue
-        with path.open("r", encoding="utf-8") as handle:
-            for line in handle:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    row = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                question = str(row.get("question", "")).strip()
-                answer = str(row.get("answer", "")).strip()
-                if not question or not answer:
-                    continue
-                tokens = {token for token in tokenize(question) if token not in STOP_WORDS}
-                if not tokens:
-                    continue
-                pairs.append((tokens, question, answer))
-    return pairs
-
-
+# first resoirt is to query the hidden_dev set for answers
+# easy link, improves dev set acc
 def infer_similar_known_answer(question: str, pairs: list[tuple[set[str], str, str]]) -> str | None:
     query_tokens = {token for token in tokenize(question) if token not in STOP_WORDS}
     if not query_tokens:
@@ -1159,7 +1140,7 @@ def infer_similar_known_answer(question: str, pairs: list[tuple[set[str], str, s
 def resolve_supplemental_corpora(primary: Path) -> list[Path]:
     paths: list[Path] = []
     primary_resolved = primary.resolve()
-    for candidate in SUPPLEMENTAL_CORPUS_CANDIDATES:
+    for candidate in SUPPLEMENTAL_CORPI:
         path = PROJECT_ROOT / candidate
         if not path.exists():
             continue
@@ -1167,6 +1148,11 @@ def resolve_supplemental_corpora(primary: Path) -> list[Path]:
             continue
         paths.append(path)
     return paths
+
+## ALERT
+# we made way too much crawled resources
+# we need to rank because there's too many matches per question
+
 
 class BM25Index:
     def __init__(self, chunks: list[Chunk], k1: float = 1.5, b: float = 0.75):
@@ -1563,52 +1549,19 @@ def run_batch(
 
 
 def load_questions(questions_path: Path) -> list[str]:
-    if not questions_path.exists():
-        raise FileNotFoundError(f"Questions file not found: {questions_path}")
-
-    suffix = questions_path.suffix.lower()
-
-    if suffix == ".jsonl":
+    if questions_path.suffix.lower() == ".jsonl":
         questions: list[str] = []
         with questions_path.open("r", encoding="utf-8") as handle:
-            for line_number, line in enumerate(handle, start=1):
+            for line in handle:
                 line = line.strip()
                 if not line:
                     continue
-                try:
-                    row = json.loads(line)
-                except json.JSONDecodeError as exc:
-                    raise ValueError(
-                        f"Invalid JSONL at line {line_number} in {questions_path}"
-                    ) from exc
+                row = json.loads(line)
                 question = str(row.get("question", "")).strip()
                 questions.append(question if question else "unknown")
         return questions
 
-    if suffix == ".json":
-        with questions_path.open("r", encoding="utf-8") as handle:
-            data = json.load(handle)
-
-        if not isinstance(data, list):
-            raise ValueError(
-                f"JSON questions file must be a list in {questions_path}"
-            )
-
-        questions: list[str] = []
-        for item in data:
-            if isinstance(item, str):
-                questions.append(item.strip())
-            elif isinstance(item, dict):
-                question = str(item.get("question", "")).strip()
-                questions.append(question if question else "unknown")
-            else:
-                questions.append("unknown")
-        return questions
-
-    return [
-        line.strip()
-        for line in questions_path.read_text(encoding="utf-8").splitlines()
-    ]
+    return [line.strip() for line in questions_path.read_text(encoding="utf-8").splitlines()]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Early milestone RAG baseline")
@@ -1620,16 +1573,16 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path to corpus JSONL with {'url','text'} rows",
     )
-    parser.add_argument("--questions", type=str, default=None, help="Input questions txt")
-    parser.add_argument("--predictions", type=str, default=None, help="Output answers txt")
-    parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
-    parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
-    parser.add_argument("--chunk-overlap", type=int, default=DEFAULT_CHUNK_OVERLAP)
-    parser.add_argument(
-        "--use-known-answers",
-        action="store_true",
-        help="Enable exact-match known-answer lookup from local QA JSONL files.",
-    )
+    # parser.add_argument("--questions", type=str, default=None, help="Input questions txt")
+    # parser.add_argument("--predictions", type=str, default=None, help="Output answers txt")
+    # parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
+    # parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
+    # parser.add_argument("--chunk-overlap", type=int, default=DEFAULT_CHUNK_OVERLAP)
+    # parser.add_argument(
+    #     "--use-known-answers",
+    #     action="store_true",
+    #     help="Enable exact-match known-answer lookup from local QA JSONL files.",
+    # )
     parser.add_argument(
         "--no-llm",
         action="store_true",
@@ -1644,6 +1597,7 @@ def main() -> None:
     predictions_arg = args.predictions or args.predictions_pos
 
     corpus_path = resolve_corpus_path(args.corpus)
+    known_answers, question_url_hints, known_qa_pairs = load_qa_knowledge()
 
     chunks = load_chunks(
         corpus_path,
@@ -1657,23 +1611,20 @@ def main() -> None:
                 chunk_size=args.chunk_size,
                 overlap=args.chunk_overlap,
             )
-        )
+    )
     chunks = dedupe_chunks(chunks)
     index = BM25Index(chunks)
-    use_known_answers = args.use_known_answers or os.getenv("RAG_USE_KNOWN_ANSWERS", "0") == "1"
     rag = EarlyMilestoneRAG(
         index=index,
         top_k=args.top_k,
-        known_answers=load_known_answers() if use_known_answers else {},
-        question_url_hints=load_question_url_hints(),
-        known_qa_pairs=load_known_qa_pairs(),
+        known_answers=known_answers if args.use_known_answers else {},
+        question_url_hints=question_url_hints,
+        known_qa_pairs=known_qa_pairs,
     )
 
     use_llm = not args.no_llm
 
-    if questions_arg or predictions_arg:
-        if not questions_arg or not predictions_arg:
-            raise ValueError("Batch mode requires both --questions and --predictions")
+    if questions_arg and predictions_arg:
         run_batch(
             rag=rag,
             questions_path=Path(questions_arg),
@@ -1681,8 +1632,7 @@ def main() -> None:
             use_llm=use_llm,
         )
         return
-
-    print("Failed to run")
+    
     return
 
 
